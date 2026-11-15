@@ -18,7 +18,3 @@ export const PALETTE = {
   zoneB: '#2e8f86', // B site bright teal
   gunmetal: '#4b5158', // lighter weapon metal (was #23262b, read near-black)
 };
-
-export function shade(name) {
-  return PALETTE[name];
-}

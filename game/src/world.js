@@ -1,4 +1,4 @@
-// Cinder Yard: an industrial brickworks at sunset, 44 x 36 m. Two bomb sites
+// Cinder Yard: industrial brickworks at sunset, 44 x 36 m.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { TEXTURES, letterDecal, skyTexture, signTexture, pavingTexture, flagTexture, glowTexture } from './textures.js';
@@ -133,11 +133,11 @@ export function createWorld(scene) {
   }
 
   const ZONE_TINTS = [
-    { x0: -7, x1: 7, z0: -18.5, z1: 18.5, color: PALETTE.concrete, opacity: 0.08 }, // mid grey
-    { x0: -8, x1: 8, z0: 12, z1: 18.5, color: PALETTE.accent, opacity: 0.07 }, // Ember spawn warm
-    { x0: -8, x1: 8, z0: -18.5, z1: -12, color: PALETTE.ash, opacity: 0.07 }, // Ash spawn cool
-    { x0: -22.5, x1: -12.5, z0: -18.5, z1: -8.5, color: PALETTE.accent, opacity: 0.10 }, // A warm
-    { x0: 12.5, x1: 22.5, z0: -18.5, z1: -8.5, color: PALETTE.zoneB, opacity: 0.10 }, // B cool
+    { x0: -7, x1: 7, z0: -18.5, z1: 18.5, color: PALETTE.concrete, opacity: 0.08 },
+    { x0: -8, x1: 8, z0: 12, z1: 18.5, color: PALETTE.accent, opacity: 0.07 },
+    { x0: -8, x1: 8, z0: -18.5, z1: -12, color: PALETTE.ash, opacity: 0.07 },
+    { x0: -22.5, x1: -12.5, z0: -18.5, z1: -8.5, color: PALETTE.accent, opacity: 0.10 },
+    { x0: 12.5, x1: 22.5, z0: -18.5, z1: -8.5, color: PALETTE.zoneB, opacity: 0.10 },
   ];
   for (const t of ZONE_TINTS) {
     const tint = new THREE.Mesh(

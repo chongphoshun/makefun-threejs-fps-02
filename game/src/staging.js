@@ -1,4 +1,4 @@
-// Staging: deterministic captures and the headless self-test. One job: put the game
+// Staging: deterministic captures + headless self-test.
 import * as THREE from 'three';
 import { WEAPONS, WEAPON_ORDER } from './weapons.js';
 import { FIXED_STEP } from './loop.js';
@@ -64,7 +64,7 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       aimAt(new THREE.Vector3(17, 1.5, -13));
       shooter.shoot(0);
       step(FIXED_STEP);
-      effects.smokeCloud(new THREE.Vector3(14, 1, -12));
+      effects.smokeCloud(new THREE.Vector3(19, 1, -9)); // right edge, clear of the enemies
       effects.burst(new THREE.Vector3(13, 1.5, -13), new THREE.Vector3(-1, 0, 0), 12);
       effects.decal(new THREE.Vector3(13, 1.5, -12.5), new THREE.Vector3(-1, 0, 0));
       effects.tracer(new THREE.Vector3(13, 1.35, -13), new THREE.Vector3(8, 1.2, -9), 0x7fb8ff);
@@ -99,7 +99,7 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       playerBody.position.set(-6, 0, -12);
       settle(10);
       aimAt(new THREE.Vector3(-15.5, 1.3, -12.5));
-      effects.smokeCloud(new THREE.Vector3(-13, 1, -10));
+      effects.smokeCloud(new THREE.Vector3(-15, 1, -5.5)); // left edge, clear of the charge
       weapons.showCharge(true);
       hud.setPlant(2 / 3);
       hud.prompt('Hold <b>E</b> to plant the charge');

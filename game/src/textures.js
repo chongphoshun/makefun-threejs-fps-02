@@ -1,4 +1,4 @@
-// Canvas textures: every surface is drawn once at load from the palette —
+// Canvas textures: drawn once at load from the palette.
 import * as THREE from 'three';
 
 function canvas(size, draw) {

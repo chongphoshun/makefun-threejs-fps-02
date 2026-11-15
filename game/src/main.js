@@ -1,4 +1,4 @@
-// EMBERLINE boot: build the world, wire the modules, hand the frame to the loop.
+// EMBERLINE boot: build the world, wire the modules.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { createWorld, SITES } from './world.js';

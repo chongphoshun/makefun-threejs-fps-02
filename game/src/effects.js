@@ -1,6 +1,7 @@
 // Transient combat feedback: tracers, impact sparks, explosions and camera shake.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
+import { glowTexture } from './textures.js';
 
 const TRACER_COUNT = 24;
 const SPARK_COUNT = 320;
@@ -43,19 +44,21 @@ export function createEffects(scene) {
   scene.add(boomLight);
   let boomLife = 0;
 
+  // Smoke: soft radial-gradient sprites, varied size/rotation/opacity — layered vapour, never flat discs.
+  const smokeTex = glowTexture();
   const SMOKE_CLOUDS = 3;
   const SMOKE_PUFFS = 10;
   const smokeGroups = [];
   const smokeLife = new Float32Array(SMOKE_CLOUDS);
   const smokeSeed = new Float32Array(SMOKE_CLOUDS * SMOKE_PUFFS * 3);
+  const smokeBase = new Float32Array(SMOKE_CLOUDS * SMOKE_PUFFS * 2); // width, opacity
   for (let c = 0; c < SMOKE_CLOUDS; c += 1) {
     const group = new THREE.Group();
     group.visible = false;
     for (let i = 0; i < SMOKE_PUFFS; i += 1) {
-      const puff = new THREE.Mesh(
-        new THREE.SphereGeometry(1.5, 10, 8),
-        new THREE.MeshBasicMaterial({ color: 0x9a9a9a, transparent: true, opacity: 0.38, depthWrite: false }),
-      );
+      const puff = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: smokeTex, color: 0xc9c2b8, transparent: true, opacity: 0.25, depthWrite: false,
+      }));
       group.add(puff);
     }
     scene.add(group);
@@ -186,12 +189,17 @@ export function createEffects(scene) {
     group.visible = true;
     for (let i = 0; i < SMOKE_PUFFS; i += 1) {
       const o = (c * SMOKE_PUFFS + i) * 3;
-      smokeSeed[o] = (Math.random() * 2 - 1) * 2.4;
-      smokeSeed[o + 1] = Math.random() * 1.6 + 0.4;
-      smokeSeed[o + 2] = (Math.random() * 2 - 1) * 2.4;
+      smokeSeed[o] = (Math.random() * 2 - 1) * 1.8;
+      smokeSeed[o + 1] = Math.random() * 1.4 + 0.3;
+      smokeSeed[o + 2] = (Math.random() * 2 - 1) * 1.8;
       const puff = group.children[i];
       puff.position.set(smokeSeed[o], smokeSeed[o + 1], smokeSeed[o + 2]);
-      puff.scale.setScalar(0.6);
+      const b = (c * SMOKE_PUFFS + i) * 2;
+      smokeBase[b] = 1.8 + Math.random() * 1.6;
+      smokeBase[b + 1] = 0.16 + Math.random() * 0.12;
+      puff.scale.setScalar(smokeBase[b]);
+      puff.material.opacity = smokeBase[b + 1];
+      puff.material.rotation = Math.random() * Math.PI * 2;
     }
     smokeLife[c] = 14;
   }
@@ -254,8 +262,10 @@ export function createEffects(scene) {
       group.rotation.y += dt * 0.05;
       for (let i = 0; i < SMOKE_PUFFS; i += 1) {
         const puff = group.children[i];
-        puff.scale.setScalar(grow);
-        puff.material.opacity = 0.38 * fade;
+        const b = (c * SMOKE_PUFFS + i) * 2;
+        puff.scale.setScalar(smokeBase[b] * grow);
+        puff.material.opacity = smokeBase[b + 1] * fade;
+        puff.material.rotation += dt * 0.04;
         puff.position.y += dt * 0.15;
       }
       if (smokeLife[c] <= 0) group.visible = false;
