@@ -89,7 +89,7 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
       if (event.event === 'live') {
         buyOpen = false;
         hud.hideBuy();
-        hud.banner(`ROUND ${game.state.round}`, game.state.round === 1 ? 'Plant the charge at A or B' : 'Plant the charge at A or B', 2400);
+        hud.banner(`ROUND ${game.state.round}`, 'Plant the charge at A or B', 2400);
       } else if (event.event === 'detonation') {
         const site = game.state.planted.site;
         effects.explosion(new THREE.Vector3(SITES[site].center.x, 1, SITES[site].center.z), 6);
@@ -126,7 +126,7 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
   }
 
   function frame(now) {
-    requestAnimationFrame(frameWithMap);
+    requestAnimationFrame(frame);
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
     if (!frozen) {
@@ -183,10 +183,6 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
       syncCamera();
     }
     renderer.render(scene, camera);
-  }
-
-  function frameWithMap(now) {
-    frame(now);
     mapTimer += 1;
     if (mapTimer % 6 === 0 && !frozen) {
       hud.drawMinimap(player, bots, game.state.planted ? game.state.planted.site : null, simTime);
@@ -194,7 +190,7 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
   }
 
   return {
-    step, frame, frameWithMap, syncCamera, aimAt, now,
+    step, frame, syncCamera, aimAt, now,
     setFrozen(v) { frozen = v; },
     closeBuy() { buyOpen = false; },
   };

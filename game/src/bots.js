@@ -72,46 +72,38 @@ export function createBots(scene, world, hooks) {
     const group = new THREE.Group();
     const mat = teamMat[bot.team];
     const torsoMat = mat.clone();
-    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.52, 0.16), darkMat);
-    legL.position.set(-0.11, 0.26, 0);
-    legL.userData = { bot, part: 'leg' };
-    const legR = legL.clone();
-    legR.position.x = 0.11;
-    legR.userData = { bot, part: 'leg' };
+    const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+    function part(geo, m, x, y, z, ud) {
+      const p = new THREE.Mesh(geo, m);
+      p.position.set(x, y, z);
+      if (ud) p.userData = { bot, part: ud };
+      group.add(p);
+      return p;
+    }
+    const legL = part(box(0.16, 0.52, 0.16), darkMat, -0.11, 0.26, 0, 'leg');
+    const legR = part(box(0.16, 0.52, 0.16), darkMat, 0.11, 0.26, 0, 'leg');
     for (const leg of [legL, legR]) {
-      const boot = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.12, 0.28), darkMat);
+      const boot = new THREE.Mesh(box(0.17, 0.12, 0.28), darkMat);
       boot.position.set(0, -0.22, 0.04);
       leg.add(boot);
     }
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), torsoMat);
-    torso.position.y = 1.06;
-    torso.userData = { bot, part: 'torso' };
-    const vest = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.42, 0.34), mat);
-    vest.position.y = 1.1;
-    const rig = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.06), darkMat);
-    rig.position.set(0, 1.08, -0.19);
-    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.18), darkMat);
-    pack.position.set(0, 1.1, 0.26);
-    const roll = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.2), mat);
-    roll.position.set(0, 1.4, 0.26);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), skinMat);
-    head.position.y = 1.56;
-    head.userData = { bot, part: 'head' };
-    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), mat);
+    const torso = part(box(0.52, 0.62, 0.3), torsoMat, 0, 1.06, 0, 'torso');
+    part(box(0.56, 0.42, 0.34), mat, 0, 1.1, 0); // vest
+    part(box(0.4, 0.3, 0.06), darkMat, 0, 1.08, -0.19); // rig
+    part(box(0.4, 0.5, 0.18), darkMat, 0, 1.1, 0.26); // pack
+    part(box(0.42, 0.12, 0.2), mat, 0, 1.4, 0.26); // bedroll
+    const head = part(new THREE.SphereGeometry(0.16, 14, 10), skinMat, 0, 1.56, 0, 'head');
+    const helmet = part(new THREE.SphereGeometry(0.17, 14, 10), mat, 0, 1.66, 0);
     helmet.scale.set(1, 0.65, 1.1);
-    helmet.position.y = 1.66;
-    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.04), darkMat);
-    visor.position.set(0, 1.6, -0.15);
-    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.5, 0.13), darkMat);
-    armL.position.set(-0.33, 1.12, -0.08);
+    part(box(0.3, 0.07, 0.04), darkMat, 0, 1.6, -0.15); // visor
+    const armL = part(box(0.13, 0.5, 0.13), darkMat, -0.33, 1.12, -0.08);
+    const armR = part(box(0.13, 0.5, 0.13), darkMat, 0.33, 1.12, -0.08);
     armL.rotation.x = -0.5;
-    const armR = armL.clone();
-    armR.position.x = 0.33;
-    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.55), darkMat);
-    gun.position.set(0.14, 1.28, -0.3);
+    armR.rotation.x = -0.5;
+    const gun = part(box(0.06, 0.09, 0.55), darkMat, 0.14, 1.28, -0.3);
     const plate = nameplate(bot.name, bot.team === 'ember' ? PALETTE.accent : PALETTE.ash);
     plate.position.y = 1.98;
-    group.add(legL, legR, torso, vest, rig, pack, roll, head, helmet, visor, armL, armR, gun, plate);
+    group.add(plate);
     group.traverse((mesh) => { if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; } });
     hitMeshes.push(torso, head, legL, legR);
     return { group, legL, legR, torso, torsoMat, armL, armR, head, gun };
@@ -199,7 +191,7 @@ export function createBots(scene, world, hooks) {
       if (tHead >= 0 && (tBody < 0 || tHead <= tBody)) { hit = true; isHead = true; }
       else if (tBody >= 0) hit = true;
     }
-    hooks.onBotShot(muzzle.clone(), end.clone ? end.clone() : end, bot.weapon, dist);
+    hooks.onBotShot(muzzle.clone(), end.clone(), bot.weapon, dist);
     if (!hit) return;
     const falloff = dist > 25 ? 0.7 : 1;
     const dmg = BOT_DAMAGE[bot.weapon] * falloff * (isHead ? 3 : 1);
@@ -325,7 +317,6 @@ export function createBots(scene, world, hooks) {
       }
       bot.state = 'engage';
       if (visible.team === 'ash') spotted.set(visible.id, now);
-      if (bot.team === 'ember' && visible.team === 'ash') spotted.set(visible.id, now);
     } else if (bot.state === 'engage') {
       bot.target = null;
       if (now - bot.lastSeenTime > 2.5) {
@@ -457,8 +448,7 @@ export function createBots(scene, world, hooks) {
     let dyaw = wantYaw - body.yaw;
     dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
     body.yaw += Math.max(-3.2 * dt, Math.min(3.2 * dt, dyaw));
-    const crouch = false;
-    mover.step(dt, wishX, wishZ, speed, false, crouch);
+    mover.step(dt, wishX, wishZ, speed, false, false);
     if (ctx.hearing && mover.groundSpeed() > 3 && now - bot.stepAt > 0.6) {
       ctx.hearing.addNoise(pos.x, pos.z, now, 7, 'step', bot.team);
       bot.stepAt = now;

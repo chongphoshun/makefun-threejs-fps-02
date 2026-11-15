@@ -14,49 +14,8 @@ const COPY = {
 
 export function createHud(world) {
   const $ = (id) => document.getElementById(id);
-  const overlay = $('overlay');
-  const overlayTitle = $('overlay-title');
-  const overlayCopy = $('overlay-copy');
-  const playBtn = $('play');
-  const crosshair = $('crosshair');
-  const hitmarker = $('hitmarker');
-  const healthFill = $('health-fill');
-  const healthNum = $('health-num');
-  const armorFill = $('armor-fill');
-  const ammoMag = $('ammo-mag');
-  const ammoReserve = $('ammo-reserve');
-  const weaponName = $('weapon-name');
-  const moneyValue = $('money-value');
-  const timerValue = $('timer-value');
-  const scoreEmber = $('score-ember');
-  const scoreAsh = $('score-ash');
-  const roundLabel = $('round-label');
-  const pipsEmber = $('pips-ember');
-  const pipsAsh = $('pips-ash');
-  const feed = $('killfeed');
-  const banner = $('banner');
-  const bannerTitle = $('banner-title');
-  const bannerSub = $('banner-sub');
-  const vignette = $('vignette');
-  const bombBox = $('bomb-box');
-  const bombText = $('bomb-text');
-  const bombBar = $('bomb-bar');
-  const plantBox = $('plant-box');
-  const plantBar = $('plant-bar');
-  const promptEl = $('prompt');
-  const buyMenu = $('buy-menu');
-  const buyMoney = $('buy-money');
-  const radioEl = $('radio');
-  const flashOverlay = $('flash-overlay');
-  const scoreboard = $('scoreboard');
-  const scoreTitle = $('score-title');
-  const scoreSub = $('score-sub');
-  const scoreTable = $('score-table');
-  const scoreLog = $('score-log');
-  const minimap = $('minimap');
+  const [overlay, overlayTitle, overlayCopy, playBtn, crosshair, hitmarker, healthFill, healthNum, armorFill, ammoMag, ammoReserve, weaponName, moneyValue, timerValue, scoreEmber, scoreAsh, roundLabel, pipsEmber, pipsAsh, feed, banner, bannerTitle, bannerSub, vignette, bombBox, bombText, bombBar, plantBox, plantBar, promptEl, buyMenu, buyMoney, radioEl, flashOverlay, scoreboard, scoreTitle, scoreSub, scoreTable, scoreLog, minimap, gradeEl, mvpEl] = ['overlay', 'overlay-title', 'overlay-copy', 'play', 'crosshair', 'hitmarker', 'health-fill', 'health-num', 'armor-fill', 'ammo-mag', 'ammo-reserve', 'weapon-name', 'money-value', 'timer-value', 'score-ember', 'score-ash', 'round-label', 'pips-ember', 'pips-ash', 'killfeed', 'banner', 'banner-title', 'banner-sub', 'vignette', 'bomb-box', 'bomb-text', 'bomb-bar', 'plant-box', 'plant-bar', 'prompt', 'buy-menu', 'buy-money', 'radio', 'flash-overlay', 'scoreboard', 'score-title', 'score-sub', 'score-table', 'score-log', 'minimap', 'grade', 'score-mvp'].map($);
   const mapCtx = minimap.getContext('2d');
-  const gradeEl = $('grade');
-  const mvpEl = $('score-mvp');
 
   let hitTimer = 0;
   let bannerTimer = 0;
@@ -282,10 +241,10 @@ export function createHud(world) {
       const priceEl = btn.querySelector('.buy-price');
       if (priceEl) priceEl.textContent = owned ? 'OWNED' : `$${price}`;
     },
-    showOverlay(mode, score) {
+    showOverlay(mode) {
       const text = COPY[mode];
       overlayTitle.textContent = text.title;
-      overlayCopy.textContent = mode === 'dead' ? text.copy : text.copy;
+      overlayCopy.textContent = text.copy;
       playBtn.textContent = text.action;
       playBtn.style.display = text.action ? '' : 'none';
       overlay.hidden = false;

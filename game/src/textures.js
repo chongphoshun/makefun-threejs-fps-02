@@ -213,6 +213,24 @@ export function flagTexture() {
   return tex;
 }
 
+function corrugated(base, hi, lo, streakColor, speckColors) {
+  return canvas(256, (ctx, s) => {
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, s, s);
+    for (let x = 0; x < s; x += 16) {
+      ctx.fillStyle = hi;
+      ctx.fillRect(x, 0, 4, s);
+      ctx.fillStyle = lo;
+      ctx.fillRect(x + 8, 0, 4, s);
+    }
+    streaks(ctx, s, 22, streakColor, true);
+    speckle(ctx, s, 650, speckColors, 0.35);
+    ctx.fillStyle = 'rgba(23,16,9,0.35)';
+    ctx.fillRect(0, 0, s, 8);
+    ctx.fillRect(0, s - 8, s, 8);
+  });
+}
+
 export const TEXTURES = {
   floor: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#241a10';
@@ -269,36 +287,8 @@ export const TEXTURES = {
     }
     speckle(ctx, s, 700, ['#8f8358', '#5d5336'], 0.35);
   }),
-  rust: canvas(256, (ctx, s) => {
-    ctx.fillStyle = '#b3541e';
-    ctx.fillRect(0, 0, s, s);
-    for (let x = 0; x < s; x += 16) {
-      ctx.fillStyle = 'rgba(255,255,255,0.10)';
-      ctx.fillRect(x, 0, 4, s);
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.fillRect(x + 8, 0, 4, s);
-    }
-    streaks(ctx, s, 26, '#6e2f0e', true);
-    speckle(ctx, s, 700, ['#8a3f14', '#d2691e'], 0.35);
-    ctx.fillStyle = 'rgba(23,16,9,0.35)';
-    ctx.fillRect(0, 0, s, 8);
-    ctx.fillRect(0, s - 8, s, 8);
-  }),
-  teal: canvas(256, (ctx, s) => {
-    ctx.fillStyle = '#2e6f6a';
-    ctx.fillRect(0, 0, s, s);
-    for (let x = 0; x < s; x += 16) {
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      ctx.fillRect(x, 0, 4, s);
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.fillRect(x + 8, 0, 4, s);
-    }
-    streaks(ctx, s, 18, '#17403c', true);
-    speckle(ctx, s, 600, ['#3a7d76', '#245954'], 0.35);
-    ctx.fillStyle = 'rgba(23,16,9,0.35)';
-    ctx.fillRect(0, 0, s, 8);
-    ctx.fillRect(0, s - 8, s, 8);
-  }),
+  rust: corrugated('#b3541e', 'rgba(255,255,255,0.10)', 'rgba(0,0,0,0.22)', '#6e2f0e', ['#8a3f14', '#d2691e']),
+  teal: corrugated('#2e6f6a', 'rgba(255,255,255,0.12)', 'rgba(0,0,0,0.25)', '#17403c', ['#3a7d76', '#245954']),
   crate: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#5d4a2e';
     ctx.fillRect(0, 0, s, s);

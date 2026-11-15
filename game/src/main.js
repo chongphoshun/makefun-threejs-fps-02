@@ -260,4 +260,4 @@ window.addEventListener('resize', () => {
 loop.syncCamera();
 if (params.get('selftest')) staging.runSelfTest();
 else if (shot) staging.runShot(shot);
-else requestAnimationFrame(loop.frameWithMap);
+else requestAnimationFrame(loop.frame);
