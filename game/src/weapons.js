@@ -73,10 +73,10 @@ export function createWeapons(camera) {
     camera.add(models[id]);
   }
   const flash = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.26, 0.26),
+    new THREE.PlaneGeometry(0.4, 0.4),
     new THREE.MeshBasicMaterial({ color: new THREE.Color(PALETTE.accent), transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }),
   );
-  flash.position.set(0.24, -0.18, -0.95);
+  flash.position.set(0.24, -0.13, -1.15);
   flash.visible = false;
   camera.add(flash);
   const flashLight = new THREE.PointLight(new THREE.Color(PALETTE.accent), 0, 5);

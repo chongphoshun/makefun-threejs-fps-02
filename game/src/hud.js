@@ -158,22 +158,24 @@ export function createHud(world) {
       setPips(pipsEmber, emberAlive, 5, 'ember');
       setPips(pipsAsh, ashAlive, 5, 'ash');
     },
-    killfeed(killer, victim, headshot, killerTeam) {
+    killfeed(killer, victim, headshot, killerTeam, sticky = false) {
       const row = document.createElement('div');
       row.className = 'feed-row';
       row.innerHTML = `<span class="${killerTeam}">${killer}</span><span class="feed-mid">${headshot ? '◉' : '✕'}</span><span>${victim}</span>`;
       feed.prepend(row);
       while (feed.children.length > 5) feed.removeChild(feed.lastChild);
+      if (sticky) return;
       setTimeout(() => row.classList.add('fade'), 4200);
       setTimeout(() => row.remove(), 5000);
     },
     // Radio callouts: short voice lines from the team, same feed style as the killfeed.
-    radio(name, text, team = 'ember') {
+    radio(name, text, team = 'ember', sticky = false) {
       const row = document.createElement('div');
       row.className = 'radio-row';
       row.innerHTML = `<b class="${team === 'ash' ? 'ash' : ''}">${name}</b> — ${text}`;
       radioEl.prepend(row);
       while (radioEl.children.length > 4) radioEl.removeChild(radioEl.lastChild);
+      if (sticky) return;
       setTimeout(() => row.classList.add('fade'), 5200);
       setTimeout(() => row.remove(), 6000);
     },
@@ -235,7 +237,7 @@ export function createHud(world) {
     prompt(text) {
       if (!text) { promptEl.hidden = true; return; }
       promptEl.hidden = false;
-      promptEl.textContent = text;
+      promptEl.innerHTML = text;
     },
     showBuy(money) {
       this.setMoney(money);

@@ -668,49 +668,87 @@ function settle(steps) {
 function runShot(name) {
   hud.hideOverlay();
   hud.hideBuy();
+  hud.hideScoreboard();
   game.startMatch();
   startRoundSetup();
-  if (name === 'start') {
-    playerBody.position.set(0, 0, 16.5);
-    playerBody.yaw = 0.05;
-    settle(20);
-    aimAt(new THREE.Vector3(0, 2.2, -8));
-    hud.showOverlay('start');
-  } else if (name === 'play') {
+  if (name === 'firefight') {
+    // The cover: mid-firefight, not a menu. Two Ash defenders in view, a fresh shot
+    // in the air (muzzle flash + tracer still live at capture), full HUD, killfeed
+    // and radio rows pinned so the virtual-time capture keeps them.
     game.endFreeze();
-    game.state.timer = 62;
-    game.state.score = { ember: 2, ash: 1 };
-    game.state.round = 4;
-    game.state.money = 3200;
+    game.state.timer = 52;
+    game.state.score = { ember: 4, ash: 3 };
+    game.state.round = 8;
+    game.state.money = 5200;
     weapons.buy('rifle');
-    game.state.money = 3200;
+    game.state.money = 5200;
     weapons.switchTo('rifle');
-    playerBody.position.set(-1, 0, 8);
+    playerBody.position.set(0, 0, 6);
     settle(30);
-    // One Ash defender holding mid, in the open, for the firefight frame.
+    // Two Ash defenders in the lane, seen through the mid choke doorway.
     const enemy = bots.list.find((b) => b.team === 'ash');
-    enemy.mover.teleport(0.4, -1.5, Math.PI);
+    enemy.mover.teleport(-0.3, 0.5, Math.PI);
     enemy.state = 'hold';
     enemy.path = [];
+    const second = bots.list.filter((b) => b.team === 'ash')[1];
+    second.mover.teleport(0.6, -2.8, Math.PI * 0.9);
+    second.state = 'hold';
+    second.path = [];
     settle(10);
-    aimAt(new THREE.Vector3(0.4, 1.35, -1.5));
+    aimAt(new THREE.Vector3(-0.3, 1.35, 0.5));
     shoot(0);
-    settle(2);
-    hud.setScore(2, 1, 4);
-    hud.setMoney(3200);
+    // Return fire: a blue tracer from the defender back past the camera.
+    effects.tracer(new THREE.Vector3(-0.3, 1.35, 0.5), new THREE.Vector3(0.3, 1.2, 5.5), 0x7fb8ff);
+    hud.hitMarker(false, 60000);
+    hud.setScore(4, 3, 8);
+    hud.setMoney(5200);
+    hud.killfeed('Vex', 'Onyx', true, 'ember', true);
+    hud.killfeed('You', 'Wren', false, 'ember', true);
+    hud.radio('Rook', 'Contact — mid, two of them', 'ember', true);
+    hud.radio('Vex', 'Holding A, need backup', 'ember', true);
   } else if (name === 'buy') {
-    game.state.money = 4250;
-    hud.setMoney(4250);
+    game.state.money = 6400;
+    hud.setMoney(6400);
+    game.state.score = { ember: 4, ash: 4 };
+    game.state.round = 9;
     playerBody.position.set(0, 0, 16.5);
     settle(20);
     aimAt(new THREE.Vector3(0, 2.2, -8));
-    hud.showBuy(4250);
-    for (const item of [...WEAPON_ORDER, 'armor']) hud.buyAfford(item, 4250);
-  } else if (name === 'end') {
-    game.state.score = { ember: 3, ash: 1 };
-    game.state.round = 5;
-    game.state.money = 4150;
-    game.state.timer = 3;
+    hud.setScore(4, 4, 9);
+    hud.showBuy(6400);
+    for (const item of [...WEAPON_ORDER, 'armor', 'helmet']) hud.buyAfford(item, 6400);
+  } else if (name === 'plant') {
+    // Plant in progress at A: progress bar two-thirds full, prompt up, one Ash
+    // defender visible guarding the site, bomb timer still on the round clock.
+    game.endFreeze();
+    game.state.timer = 41;
+    game.state.score = { ember: 6, ash: 4 };
+    game.state.round = 11;
+    game.state.money = 3800;
+    weapons.buy('rifle');
+    game.state.money = 3800;
+    weapons.switchTo('rifle');
+    const enemy = bots.list.find((b) => b.team === 'ash');
+    enemy.mover.teleport(-15.5, -12.5, Math.PI * 0.5);
+    enemy.state = 'hold';
+    enemy.path = [];
+    // Stand off at the site's east edge so the defender is in the open, not
+    // behind the site containers.
+    playerBody.position.set(-8, 0, -12);
+    settle(10);
+    aimAt(new THREE.Vector3(-15.5, 1.3, -12.5));
+    plantProgress = 2;
+    hud.setPlant(2 / 3);
+    hud.prompt('Hold <b>E</b> to plant the charge');
+    hud.radio('Iris', 'Planting A — cover me', 'ember', true);
+    hud.setScore(6, 4, 11);
+    hud.setMoney(3800);
+  } else if (name === 'scoreboard') {
+    // After-action report of a finished round: the scoreboard panel over a live
+    // scene, with the round's kills, headshots, accuracy and economy on it.
+    game.state.score = { ember: 7, ash: 5 };
+    game.state.round = 12;
+    game.state.money = 6800;
     const enemy = bots.list.find((b) => b.team === 'ash');
     enemy.mover.teleport(1.5, 0.5, Math.PI);
     enemy.alive = false;
@@ -722,9 +760,25 @@ function runShot(name) {
     playerBody.position.set(0, 0, 6);
     settle(10);
     aimAt(new THREE.Vector3(1.5, 0.9, 0.5));
-    hud.setScore(3, 1, 5);
-    hud.setMoney(4150);
-    hud.banner('ROUND WON', 'Ash team eliminated', 60000);
+    game.state.timer = 0;
+    hud.setScore(7, 5, 12);
+    hud.setMoney(6800);
+    hud.killfeed('You', 'Kestrel', true, 'ember', true);
+    hud.showScoreboard({
+      title: 'ROUND 12 — EMBER WINS',
+      sub: 'Charge detonated at Warehouse · Cinder Yard 7 — 5 · Round 12 of 24',
+      rows: [
+        { name: 'You', team: 'Ember', k: 4, d: 1, hs: 2, acc: '57%' },
+        { name: 'Vex', team: 'Ember', k: 3, d: 2, hs: 1, acc: '48%' },
+        { name: 'Rook', team: 'Ember', k: 2, d: 1, hs: 0, acc: '44%' },
+        { name: 'Kestrel', team: 'Ash', k: 3, d: 2, hs: 1, acc: '52%' },
+        { name: 'Onyx', team: 'Ash', k: 1, d: 3, hs: 0, acc: '38%' },
+      ],
+      log: [
+        '<b>+$3,250</b> round win &nbsp;·&nbsp; <b>+$300</b> × 4 kills &nbsp;·&nbsp; <b>+$300</b> plant bonus',
+        'Loss streak bonus: $0 · Balance: <b>$6,800</b> · Next round: buy up with B',
+      ],
+    });
   }
   hud.setAlive((player.alive ? 1 : 0) + bots.aliveCount('ember'), bots.aliveCount('ash'));
   hud.setHealth(Math.max(0, player.health), weapons.state.armor);
