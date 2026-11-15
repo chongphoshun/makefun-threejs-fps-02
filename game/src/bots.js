@@ -205,17 +205,6 @@ export function createBots(scene, world, hooks) {
     hooks.damageCombatant(combatant, dmg, isHead, bot);
   }
 
-  function routeThrough(fromNode, via) {
-    let path = [fromNode];
-    let cur = fromNode;
-    for (const node of via) {
-      const leg = world.findPath(cur, node);
-      path = path.concat(leg.slice(1));
-      cur = node;
-    }
-    return path;
-  }
-
   function setPath(bot, path, state) {
     bot.path = path;
     bot.pathIdx = 0;
@@ -285,12 +274,12 @@ export function createBots(scene, world, hooks) {
       if (bot.team === 'ember') {
         const routes = [[20], [21], [9, 20], [10, 21]];
         const route = routes[index % routes.length];
-        setPath(bot, routeThrough(startNode, route), 'advance');
+        setPath(bot, world.nav.routeThrough(startNode, route), 'advance');
         bot.role = route[route.length - 1] === 20 ? 'rushA' : 'rushB';
       } else {
         const holds = [25, 18, 26, 19, 15];
         bot.holdNode = holds[index % holds.length];
-        setPath(bot, routeThrough(startNode, [bot.holdNode]), 'advance');
+        setPath(bot, world.nav.routeThrough(startNode, [bot.holdNode]), 'advance');
         bot.role = bot.holdNode === 15 ? 'roam' : bot.holdNode <= 18 ? 'holdA' : 'holdB';
       }
     });
@@ -345,23 +334,19 @@ export function createBots(scene, world, hooks) {
       if (now - bot.lastSeenTime > 2.5) {
         bot.state = 'investigate';
         bot.hearPos.copy(bot.lastSeen);
-        setPath(bot, routeThrough(world.nearestNode(pos.x, pos.z), [world.nearestNode(bot.lastSeen.x, bot.lastSeen.z)]), 'advance');
+        setPath(bot, world.nav.routeThrough(world.nearestNode(pos.x, pos.z), [world.nearestNode(bot.lastSeen.x, bot.lastSeen.z)]), 'advance');
       }
     }
-    // Hearing: a recent gunshot nearby pulls a bot that is not already fighting.
-    if (bot.state !== 'engage' && ctx.noises) {
-      for (const noise of ctx.noises) {
-        if (now - noise.time > 1.2 || now - bot.hearAt < 4) continue;
-        const dx = noise.x - pos.x;
-        const dz = noise.z - pos.z;
-        if (dx * dx + dz * dz < 28 * 28) {
-          bot.hearAt = now;
-          bot.hearPos.set(noise.x, 0, noise.z);
-          bot.state = 'investigate';
-          if (hooks.radio) hooks.radio(bot.name, 'Heard shots — rotating', bot.team);
-          setPath(bot, routeThrough(world.nearestNode(pos.x, pos.z), [world.nearestNode(noise.x, noise.z)]), 'advance');
-          break;
-        }
+    // Hearing: a recent noise nearby pulls a bot that is not already fighting.
+    // (Gunshots pull anyone; footsteps only betray the enemy team — see hearing.js.)
+    if (bot.state !== 'engage' && ctx.hearing) {
+      const noise = ctx.hearing.heard(bot, pos, now);
+      if (noise) {
+        bot.hearAt = now;
+        bot.hearPos.set(noise.x, 0, noise.z);
+        bot.state = 'investigate';
+        if (hooks.radio) hooks.radio(bot.name, noise.kind === 'step' ? 'Heard steps — checking' : 'Heard shots — rotating', bot.team);
+        setPath(bot, world.nav.routeThrough(world.nearestNode(pos.x, pos.z), [world.nearestNode(noise.x, noise.z)]), 'advance');
       }
     }
     // After the plant, defenders converge on the site; attackers fall back to hold it.
@@ -371,10 +356,10 @@ export function createBots(scene, world, hooks) {
         if (world.inSite(pos.x, pos.z, ctx.plantedSite)) {
           bot.state = 'defuse';
         } else if (bot.state !== 'advance' || bot.path[bot.path.length - 1] !== siteNode) {
-          setPath(bot, routeThrough(world.nearestNode(pos.x, pos.z), [siteNode]), 'advance');
+          setPath(bot, world.nav.routeThrough(world.nearestNode(pos.x, pos.z), [siteNode]), 'advance');
         }
       } else if (bot.state !== 'advance' || bot.path[bot.path.length - 1] !== siteNode) {
-        setPath(bot, routeThrough(world.nearestNode(pos.x, pos.z), [siteNode]), 'advance');
+        setPath(bot, world.nav.routeThrough(world.nearestNode(pos.x, pos.z), [siteNode]), 'advance');
       }
     }
   }
@@ -476,7 +461,7 @@ export function createBots(scene, world, hooks) {
       if (bot.role === 'roam' && ctx.phase === 'live' && Math.random() < dt * 0.08) {
         const dest = bot.holdNode === 15 ? 10 : 15;
         bot.holdNode = dest;
-        setPath(bot, routeThrough(world.nearestNode(pos.x, pos.z), [dest]), 'advance');
+        setPath(bot, world.nav.routeThrough(world.nearestNode(pos.x, pos.z), [dest]), 'advance');
       }
     }
 

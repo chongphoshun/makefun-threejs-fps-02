@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { TEXTURES, letterDecal, skyTexture, signTexture, pavingTexture, flagTexture, glowTexture } from './textures.js';
+import { NODES, EDGES, createNav } from './nav.js';
 
 // [width, height, depth, x, y, z, material]
 const BOXES = [
@@ -60,20 +61,6 @@ const BOXES = [
   [2, 1.1, 1, 4, 0.55, -15.5, 'crate'],
 ];
 
-// Waypoint graph the bots walk: [x, z] nodes and undirected edges between them.
-const NODES = [
-  [0, 15], [-5, 14], [5, 14], [0, 10], [-10, 10], [10, 10], [-10, 5], [10, 5],
-  [0, 5], [0, 0], [0, -5], [-10, -2], [10, -2], [-10, -9], [10, -9], [0, -11],
-  [-6, -12], [6, -12], [-14, -12], [14, -12], [-16.5, -12.5], [16.5, -12.5],
-  [0, -15], [-6, -15], [6, -15], [-16, -6], [16, -6],
-];
-const EDGES = [
-  [0, 1], [0, 2], [0, 3], [1, 4], [2, 5], [3, 4], [3, 5], [3, 8], [4, 6], [5, 7],
-  [6, 11], [7, 12], [8, 9], [9, 10], [10, 15], [11, 13], [12, 14], [13, 18],
-  [14, 19], [25, 18], [26, 19], [18, 20], [19, 21], [15, 16],
-  [15, 17], [15, 22], [16, 18], [17, 19], [16, 22], [17, 22], [22, 23], [22, 24],
-  [23, 18], [24, 19], [20, 25], [21, 26], [3, 6], [3, 7],
-];
 
 export const SITES = {
   A: { name: 'Warehouse', center: { x: -16.5, z: -12.5 }, rect: { x0: -19.5, x1: -13.5, z0: -15.5, z1: -9.5 } },
@@ -353,44 +340,9 @@ export function createWorld(scene) {
   spawnLamp.position.set(0, 4, 15.5);
   scene.add(spawnLamp);
 
-  // Waypoint graph: adjacency lists, BFS pathfinding, nearest-node lookup.
-  const adjacency = NODES.map(() => []);
-  for (const [a, b] of EDGES) {
-    adjacency[a].push(b);
-    adjacency[b].push(a);
-  }
-  function nearestNode(x, z) {
-    let best = 0;
-    let bestDist = Infinity;
-    for (let i = 0; i < NODES.length; i += 1) {
-      const dx = NODES[i][0] - x;
-      const dz = NODES[i][1] - z;
-      const d = dx * dx + dz * dz;
-      if (d < bestDist) { bestDist = d; best = i; }
-    }
-    return best;
-  }
-  function findPath(from, to) {
-    if (from === to) return [from];
-    const prev = new Array(NODES.length).fill(-1);
-    const queue = [from];
-    prev[from] = from;
-    while (queue.length) {
-      const node = queue.shift();
-      for (const next of adjacency[node]) {
-        if (prev[next] !== -1) continue;
-        prev[next] = node;
-        if (next === to) {
-          const path = [to];
-          let cur = to;
-          while (cur !== from) { cur = prev[cur]; path.unshift(cur); }
-          return path;
-        }
-        queue.push(next);
-      }
-    }
-    return [from];
-  }
+  // Waypoint graph lives in nav.js: BFS pathfinding, nearest-node lookup, routes.
+  const nav = createNav(NODES, EDGES);
+  const { adjacency, nearestNode, findPath } = nav;
   function inSite(x, z, key) {
     const r = SITES[key].rect;
     return x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1;
@@ -398,6 +350,6 @@ export function createWorld(scene) {
 
   return {
     colliders, shootables, footprints, group, sites: SITES,
-    nodes: NODES, adjacency, nearestNode, findPath, inSite,
+    nav, nodes: NODES, adjacency, nearestNode, findPath, inSite,
   };
 }
