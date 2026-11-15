@@ -67,7 +67,7 @@ function part(w, h, d, x, y, z, mat, rx = 0, rz = 0) {
 // optic: 0 none, 1 red-dot, 2 scope.
 export const RIFLE_SPEC = {
   smg: [0.08, 0.09, 0.34, 0.18, 0.2, 0.16, 0, -0.02, 0.16, 1, TAN],
-  rifle: [0.09, 0.1, 0.4, 0.24, 0.3, 0.14, 0.15, 0.02, 0.2, 1, TAN],
+  rifle: [0.07, 0.08, 0.4, 0.24, 0.3, 0.14, 0.15, 0.02, 0.2, 1, TAN],
   sniper: [0.07, 0.09, 0.5, 0.5, 0, 0.1, 0, 0, 0.24, 2, TAN],
   shotty: [0.1, 0.11, 0.42, 0.34, 0, 0.09, 0, -0.32, 0.2, 0, TAN],
 };
@@ -87,11 +87,11 @@ export function buildRifle(spec) {
     add(rw - 0.01, rh - 0.02, gl, 0, 0.01, -(rl / 2 + gl / 2 - 0.02), gm); // railed handguard
     add(0.035, 0.012, gl, 0, rh / 2 + 0.008, -(rl / 2 + gl / 2 - 0.02), GREY); // top rail
   }
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, bl, 8), GREY);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, bl, 8), GREY);
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(0, 0.01, -(rl / 2 + gl + bl / 2 - 0.02));
   g.add(barrel);
-  add(0.05, 0.05, 0.08, 0, 0.01, -(rl / 2 + gl + bl - 0.02), GREY); // muzzle brake
+  add(0.04, 0.04, 0.08, 0, 0.01, -(rl / 2 + gl + bl - 0.02), GREY); // muzzle brake
   const mag = add(0.05, ml, 0.07, 0, -rh / 2 - ml / 2 + 0.02, mz, POLY, mrx); // curved magazine
   add(0.05, 0.12, 0.07, 0, -0.1, 0.06, POLY, 0.25); // grip
   add(0.07, 0.09, sl, 0, -0.01, rl / 2 + sl / 2 - 0.04, POLY); // stock
