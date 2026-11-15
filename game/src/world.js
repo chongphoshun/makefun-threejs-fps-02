@@ -1,6 +1,6 @@
-// Cinder Yard: an original dusk freight yard, 44 x 36 m. Two bomb sites (A west, B east),
-// three lanes (west, mid, east), a mid choke, container stacks and crate cover. Every box
-// is a collider and a surface a bullet stops on; the waypoint graph is what the bots walk.
+// Cinder Yard: an industrial brickworks at sunset, 44 x 36 m. Two bomb sites
+// (Kiln Hall west, Clay Pits east), three lanes, a mid choke, container stacks
+// and crate cover. Every box is a collider and a surface a bullet stops on.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { TEXTURES, letterDecal, skyTexture, signTexture, pavingTexture, flagTexture, glowTexture } from './textures.js';
@@ -52,8 +52,8 @@ const BOXES = [
 
 
 export const SITES = {
-  A: { name: 'Warehouse', center: { x: -16.5, z: -12.5 }, rect: { x0: -19.5, x1: -13.5, z0: -15.5, z1: -9.5 } },
-  B: { name: 'Depot', center: { x: 16.5, z: -12.5 }, rect: { x0: 13.5, x1: 19.5, z0: -15.5, z1: -9.5 } },
+  A: { name: 'Kiln Hall', center: { x: -16.5, z: -12.5 }, rect: { x0: -19.5, x1: -13.5, z0: -15.5, z1: -9.5 } },
+  B: { name: 'Clay Pits', center: { x: 16.5, z: -12.5 }, rect: { x0: 13.5, x1: 19.5, z0: -15.5, z1: -9.5 } },
 };
 
 export const SPAWNS = {
@@ -269,11 +269,28 @@ export function createWorld(scene) {
     s.rotation.y = rotY;
     group.add(s);
   }
-  sign('SITE A', 'WAREHOUSE', PALETTE.accent, 4, -21.94, 4.2, -12.5, Math.PI / 2);
-  sign('SITE B', 'DEPOT', PALETTE.zoneB, 4, 21.94, 4.2, -12.5, -Math.PI / 2);
-  sign('WAREHOUSE', 'A →', PALETTE.accent, 3.2, -12.94, 3.9, 4, Math.PI / 2);
-  sign('DEPOT', '← B', PALETTE.zoneB, 3.2, 12.94, 3.9, 4, -Math.PI / 2);
+  sign('KILN HALL', 'SITE A', PALETTE.accent, 4, -21.94, 4.2, -12.5, Math.PI / 2);
+  sign('CLAY PITS', 'SITE B', PALETTE.zoneB, 4, 21.94, 4.2, -12.5, -Math.PI / 2);
+  sign('KILN HALL', 'A →', PALETTE.accent, 3.2, -12.94, 3.9, 4, Math.PI / 2);
+  sign('CLAY PITS', '← B', PALETTE.zoneB, 3.2, 12.94, 3.9, 4, -Math.PI / 2);
   sign('CINDER YARD', '', '#f2e8d5', 4.5, 0, 4.2, 17.94, Math.PI);
+
+  const brickMat = new THREE.MeshStandardMaterial({ map: TEXTURES.brick, roughness: 0.9, metalness: 0.05 });
+  for (const [sx, sz] of [[-24, -10], [24, 10]]) {
+    const stack = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.5, 14, 14), brickMat);
+    stack.position.set(sx, 7, sz);
+    group.add(stack);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.25, 0.5, 14), steelMat);
+    rim.position.set(sx, 13.8, sz);
+    group.add(rim);
+    glowSprite(sx, 14.6, sz, '#ff9a3c', 3, 0.5);
+  }
+  for (const [key, lx, lz] of [['A', -17, -13.28], ['B', 17, -13.28]]) {
+    const wl = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2),
+      new THREE.MeshBasicMaterial({ map: letterDecal(key, key === 'A' ? PALETTE.accent : PALETTE.zoneB), transparent: true, opacity: 0.9, depthWrite: false }));
+    wl.position.set(lx, 1.4, lz);
+    group.add(wl);
+  }
 
   const skyLight = new THREE.HemisphereLight(new THREE.Color('#ffe2b8'), new THREE.Color('#2c1e11'), 1.62);
   scene.add(skyLight);

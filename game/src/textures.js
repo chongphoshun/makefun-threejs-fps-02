@@ -1,6 +1,5 @@
-// Canvas-generated textures: the yard is no longer flat colour. Every texture is drawn
-// once at load from the palette — concrete, corrugated steel, wood — and repeated across
-// the boxes that use it. Visual only; nothing here touches the simulation.
+// Canvas textures: every surface is drawn once at load from the palette —
+// brick, concrete, corrugated steel, wood, sandbags — and repeated per box.
 import * as THREE from 'three';
 
 function canvas(size, draw) {
@@ -54,6 +53,23 @@ function wallTex(base, speckColors) {
     grad.addColorStop(1, 'rgba(23,16,9,0.5)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, s, s);
+  });
+}
+
+function brickTex(base, mortar) {
+  return canvas(256, (ctx, s) => {
+    ctx.fillStyle = mortar;
+    ctx.fillRect(0, 0, s, s);
+    for (let r = 0; r < 16; r += 1) {
+      const off = (r % 2) * 21;
+      for (let c = -1; c < 7; c += 1) {
+        ctx.fillStyle = base;
+        ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+        ctx.fillRect(c * 42 + off + 1, r * 16 + 1, 40, 14);
+      }
+    }
+    ctx.globalAlpha = 1;
+    speckle(ctx, s, 700, ['#2e1a0c', '#9a6a3a'], 0.3);
   });
 }
 
@@ -214,9 +230,10 @@ export const TEXTURES = {
     }
   }),
   wall: wallTex('#4d3b26', ['#5d4a2e', '#3a2c1c', '#6b5638']),
-  wallWarm: wallTex('#6e3a1e', ['#8a4a26', '#542a14', '#a35a2e']),
-  wallCool: wallTex('#2e4a4a', ['#3a5f5c', '#223838', '#4a7a72']),
+  wallWarm: brickTex('#6e3a1e', '#3a2010'),
+  wallCool: brickTex('#2e4a4a', '#16241f'),
   wallGrey: wallTex('#5a5a58', ['#6e6e6a', '#464644', '#82827e']),
+  brick: brickTex('#7a3b1e', '#2e1a0c'),
   stripe: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#6b5638';
     ctx.fillRect(0, 0, s, s);

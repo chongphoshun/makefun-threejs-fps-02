@@ -51,9 +51,10 @@ export function createBots(scene, world, hooks) {
   let activeSmokes = [];
 
   function areaName(x, z) {
-    if (x < -9) return 'A site';
-    if (x > 9) return 'B site';
-    return 'mid';
+    if (x < -9) return 'Kiln Hall';
+    if (x > 9) return 'Clay Pits';
+    if (z > 8) return 'Courtyard';
+    return 'Mid';
   }
 
   function buildModel(bot) {

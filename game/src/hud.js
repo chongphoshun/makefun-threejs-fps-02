@@ -7,7 +7,7 @@ import { PALETTE } from './palette.js';
 const COPY = {
   start: {
     title: 'EMBERLINE',
-    copy: 'Cinder Yard — plant the charge at Warehouse or Depot, or drop every Ash defender. Click to play.',
+    copy: 'Cinder Yard — plant the charge at Kiln Hall or Clay Pits, or drop every Ash defender. Click to play.',
     action: 'Click to play',
   },
   paused: { title: 'EMBERLINE', copy: 'Paused. Click to resume.', action: 'Click to resume' },
