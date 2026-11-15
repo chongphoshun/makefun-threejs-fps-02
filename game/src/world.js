@@ -285,9 +285,9 @@ export function createWorld(scene) {
   }
   // Outer ground: dirt plane to the horizon, road, outer blocks + stacks.
   const flat = (w, d, c, x, y, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ color: new THREE.Color(c), roughness: 1 })); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); group.add(m); };
-  flat(240, 240, '#5d4a2e', 0, -0.41, 0);
-  flat(7, 240, '#24211d', 34, -0.4, 0);
-  for (const [ox, oz, ow, oh, od, om] of [[-38, 26, 12, 7, 9, 'wallA'], [40, -28, 14, 9, 10, 'wallB'], [-46, -22, 10, 6, 8, 'wallMid'], [44, 22, 9, 8, 9, 'wallA'], [-30, 34, 16, 5, 8, 'wallB'], [52, 4, 10, 11, 8, 'wallMid'], [-46, 8, 1.3, 16, 0, 'stack'], [48, -12, 1.1, 13, 0, 'stack']]) {
+  flat(320, 320, '#5d4a2e', 0, -0.41, 0);
+  flat(7, 320, '#24211d', 34, -0.4, 0);
+  for (const [ox, oz, ow, oh, od, om] of [[-38, 26, 12, 7, 9, 'wallA'], [40, -28, 14, 9, 10, 'wallB'], [44, 22, 9, 8, 9, 'wallA'], [-30, 34, 16, 5, 8, 'wallB'], [40, 4, 10, 11, 8, 'wallMid'], [-38, 6, 1.3, 16, 0, 'stack'], [38, -10, 1.1, 13, 0, 'stack']]) {
     const ob = new THREE.Mesh(om === 'stack' ? new THREE.CylinderGeometry(ow, ow * 1.35, oh, 12) : new THREE.BoxGeometry(ow, oh, od), om === 'stack' ? brickMat : materials[om]);
     ob.position.set(ox, oh / 2 - 0.4, oz);
     group.add(ob);

@@ -15,8 +15,8 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       requestAnimationFrame(paint);
       syncCamera();
       if (aerial) {
-        camera.position.set(0, 32, 22);
-        camera.lookAt(0, 0, -4);
+        camera.position.set(0, 38, 18);
+        camera.lookAt(0, 0, -3);
       }
       renderer.render(scene, camera);
       painted += 1;
