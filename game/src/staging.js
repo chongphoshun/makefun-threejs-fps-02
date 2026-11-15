@@ -123,6 +123,7 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
     } else if (name === 'scoreboard') {
       renderer.toneMappingExposure = 0.8;
       score(7, 5, 12, 6800);
+      rifle(6800); // hold the rifle, not the sidearm
       const enemy = bots.list.find((b) => b.team === 'ash');
       enemy.mover.teleport(-17.8, -7.4, Math.PI * 0.75);
       enemy.alive = false;
@@ -131,9 +132,9 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       enemy.parts.group.rotation.x = -1.45;
       enemy.parts.group.position.set(-17.8, -0.1, -7.4);
       enemy.parts.group.rotation.y = Math.PI * 0.75;
-      playerBody.position.set(-12, 0, -2);
+      playerBody.position.set(0, 0, 14);
       settle(10);
-      aimAt(new THREE.Vector3(-19.5, 1.2, -9));
+      aimAt(new THREE.Vector3(0, 5, -18)); // open yard + sky above the far wall, no wall filling the frame
       game.state.timer = 0;
       hud.killfeed('You', 'Kestrel', true, 'ember', 'Rifle', true);
       hud.showScoreboard({
