@@ -1,7 +1,6 @@
-// The armoury: five guns, three grenades, vest and helmet. Numbers are the balance: a
-// rifle wins a duel, a sniper wins a lane, a shotgun wins a doorway, a pistol is what
-// you have when you are broke. damage is per body hit; headMult multiplies it on a
-// head shot; pellets fires that many rays per trigger pull.
+// The armoury: five guns, three grenades, vest, helmet, defuse kit. damage is
+// per body hit; headMult multiplies it on a head shot; pellets fires that many
+// rays per trigger pull.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 
@@ -19,6 +18,7 @@ export const WEAPON_ORDER = ['pistol', 'smg', 'rifle', 'sniper', 'shotty', 'he',
 export const GRENADE_ORDER = ['he', 'smoke', 'flash'];
 export const ARMOR_PRICE = 650;
 export const HELMET_PRICE = 350;
+export const KIT_PRICE = 400;
 export const ARMOR_MAX = 100;
 
 const GRIP = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.surface), roughness: 0.7, metalness: 0.2 });
@@ -174,13 +174,23 @@ export function createWeapons(camera) {
   const flashLight = new THREE.PointLight(new THREE.Color(PALETTE.accent), 0, 5);
   flashLight.position.set(0.24, -0.16, -0.6);
   camera.add(flashLight);
+  const charge = new THREE.Group();
+  const chargeBody = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.12), POLY);
+  const chargeLamp = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2a1a }));
+  chargeLamp.position.set(0.05, 0.05, 0);
+  const chargeWire = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.006, 6, 12), EMBER);
+  chargeWire.position.set(-0.05, 0.04, 0);
+  charge.add(chargeBody, chargeLamp, chargeWire);
+  charge.position.set(0.18, -0.24, -0.55);
+  charge.visible = false;
+  camera.add(charge);
 
   const ammo = {};
   for (const id of WEAPON_ORDER) ammo[id] = { mag: 0, reserve: 0 };
   ammo.pistol = { mag: WEAPONS.pistol.mag, reserve: WEAPONS.pistol.reserve };
   const state = {
     current: 'pistol', cooldown: 0, reloadLeft: 0, flash: 0, kick: 0,
-    grenades: { he: 0, smoke: 0, flash: 0 }, armor: 0, helmet: false,
+    grenades: { he: 0, smoke: 0, flash: 0 }, armor: 0, helmet: false, kit: false,
     aiming: false, owned: new Set(['pistol']),
   };
   models.pistol.visible = true;
@@ -202,6 +212,9 @@ export function createWeapons(camera) {
     flash.visible = state.flash > 0;
     flash.rotation.z = state.flash * 30;
     flashLight.intensity = state.flash > 0 ? 26 : 0;
+    if (charge.visible) {
+      chargeLamp.material.color.setHex(Math.sin(performance.now() / 90) > 0 ? 0xff2a1a : 0x661008);
+    }
     const def = WEAPONS[state.current];
     if (state.reloadLeft > 0) {
       state.reloadLeft = Math.max(0, state.reloadLeft - dt);
@@ -228,6 +241,7 @@ export function createWeapons(camera) {
     state, ammo,
     def() { return WEAPONS[state.current]; },
     step,
+    showCharge(v) { charge.visible = v; },
     ready() {
       const slot = ammo[state.current];
       return slot.mag > 0 && state.cooldown === 0 && state.reloadLeft === 0;
@@ -291,6 +305,7 @@ export function createWeapons(camera) {
       state.grenades = { he: 0, smoke: 0, flash: 0 };
       state.armor = 0;
       state.helmet = false;
+      state.kit = false;
       this.refill();
       if (state.current !== 'pistol') {
         models[state.current].visible = false;
@@ -318,6 +333,10 @@ export function createWeapons(camera) {
     },
     buyHelmet() {
       state.helmet = true;
+      return true;
+    },
+    buyKit() {
+      state.kit = true;
       return true;
     },
     throwGrenade() {

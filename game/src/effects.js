@@ -122,9 +122,15 @@ export function createEffects(scene) {
   const bombLampMat = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
   const bombLamp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), bombLampMat);
   bombLamp.position.set(0.08, 0.16, 0);
+  const bombWire = new THREE.Mesh(
+    new THREE.TorusGeometry(0.09, 0.008, 6, 14),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.accent), roughness: 0.5, metalness: 0.3 }),
+  );
+  bombWire.position.set(-0.06, 0.1, 0);
+  bombWire.rotation.x = Math.PI / 2.4;
   const bombLight = new THREE.PointLight(0xff2a1a, 0, 8);
   bombLight.position.set(0, 0.3, 0);
-  bombGroup.add(bombBody, bombLamp, bombLight);
+  bombGroup.add(bombBody, bombLamp, bombLight, bombWire);
   bombGroup.visible = false;
   scene.add(bombGroup);
   let bombTime = 0;

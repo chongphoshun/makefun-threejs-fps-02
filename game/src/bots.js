@@ -1,9 +1,6 @@
-// The bots: four Ember teammates and five Ash defenders. Each bot is a body on the shared
-// mover, a small state machine (advance / hold / engage / investigate / defuse), and a
-// burst-fire gun with reaction time, spread and falloff. They walk waypoint routes, hold
-// positions, scan, react to line of sight and to the sound of gunfire, and converge on a
-// planted charge. A bot shoots with the same ray-sphere test the player is shot with:
-// a wall between muzzle and target stops the bullet, a head is a smaller, deadlier sphere.
+// The bots: four Ember teammates and five Ash defenders. Bodies on the shared
+// mover, a small state machine, burst-fire guns, waypoint routes, line of sight
+// and hearing. A bot shoots with the same ray-sphere test the player is shot with.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { createMover } from './move.js';
@@ -57,6 +54,22 @@ export function createBots(scene, world, hooks) {
     return 'Mid';
   }
 
+  function nameplate(name, color) {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 32;
+    const x = c.getContext('2d');
+    x.font = 'bold 20px sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.shadowColor = '#000'; x.shadowBlur = 4;
+    x.fillStyle = color;
+    x.fillText(name.toUpperCase(), 64, 16);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+    sp.scale.set(0.9, 0.225, 1);
+    return sp;
+  }
+
   function buildModel(bot) {
     const group = new THREE.Group();
     const mat = teamMat[bot.team];
@@ -98,7 +111,9 @@ export function createBots(scene, world, hooks) {
     armR.position.x = 0.33;
     const gun = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.55), darkMat);
     gun.position.set(0.14, 1.28, -0.3);
-    group.add(legL, legR, torso, vest, rig, pack, roll, head, helmet, visor, armL, armR, gun);
+    const plate = nameplate(bot.name, bot.team === 'ember' ? PALETTE.accent : PALETTE.ash);
+    plate.position.y = 1.98;
+    group.add(legL, legR, torso, vest, rig, pack, roll, head, helmet, visor, armL, armR, gun, plate);
     group.traverse((mesh) => { if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; } });
     hitMeshes.push(torso, head, legL, legR);
     return { group, legL, legR, torso, torsoMat, armL, armR, head, gun };
