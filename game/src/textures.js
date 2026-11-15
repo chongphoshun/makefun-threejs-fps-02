@@ -94,11 +94,12 @@ export function skyTexture() {
   c.height = 256;
   const ctx = c.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, '#160b2e');
-  g.addColorStop(0.35, '#3d1c33');
-  g.addColorStop(0.62, '#8a3418');
-  g.addColorStop(0.8, '#ff7a1a');
-  g.addColorStop(1, '#ffb36b');
+  g.addColorStop(0, '#0a1c38');
+  g.addColorStop(0.3, '#1b3358');
+  g.addColorStop(0.48, '#5e3a5c');
+  g.addColorStop(0.62, '#c65a1e');
+  g.addColorStop(0.78, '#ff8a2a');
+  g.addColorStop(1, '#ffc46b');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 512, 256);
   for (let i = 0; i < 40; i += 1) {
@@ -107,12 +108,12 @@ export function skyTexture() {
     ctx.fillRect(Math.random() * 512, Math.random() * 70, 1.5, 1.5);
   }
   ctx.globalAlpha = 1;
-  const sg = ctx.createRadialGradient(150, 190, 4, 150, 190, 70);
+  const sg = ctx.createRadialGradient(448, 95, 4, 448, 95, 55);
   sg.addColorStop(0, 'rgba(255,244,210,1)');
   sg.addColorStop(0.25, 'rgba(255,190,90,0.85)');
   sg.addColorStop(1, 'rgba(255,140,40,0)');
   ctx.fillStyle = sg;
-  ctx.beginPath(); ctx.arc(150, 190, 70, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(448, 95, 55, 0, Math.PI * 2); ctx.fill();
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;

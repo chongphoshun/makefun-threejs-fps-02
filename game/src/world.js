@@ -103,7 +103,7 @@ export function createWorld(scene) {
     group.add(mesh);
     colliders.push(new THREE.Box3().setFromObject(mesh));
     shootables.push(mesh);
-    if (w < 40 && d < 40) footprints.push({ x, z, w, d }); // the floor stays off the minimap
+    if (w < 40 && d < 40) footprints.push({ x, z, w, d });
     return mesh;
   }
   for (const entry of BOXES) box(...entry);
@@ -179,7 +179,7 @@ export function createWorld(scene) {
     group.add(sprite);
     return sprite;
   }
-  glowSprite(54, 62, 47, '#ffc46b', 34, 0.85);
+  glowSprite(-34, 10, -15, '#ffc46b', 26, 0.9);
   glowSprite(-16.5, 4.4, -12.5, PALETTE.accent, 7, 0.4);
   glowSprite(16.5, 4.4, -12.5, PALETTE.zoneB, 7, 0.35);
   glowSprite(0, 4.5, 0, '#ff9a3c', 6, 0.35);
