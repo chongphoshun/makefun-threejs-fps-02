@@ -18,6 +18,7 @@ import { createEconomy } from './economy.js';
 import { createBomb } from './bomb.js';
 import { createGrenades } from './grenade.js';
 import { createHearing } from './hearing.js';
+import { createShooter } from './combat.js';
 
 const FIXED_STEP = 1 / 60;
 const params = new URLSearchParams(window.location.search);
@@ -89,6 +90,18 @@ const grenades = createGrenades({
     getBots: () => bots,
     hurtPlayer,
     now: () => simTime,
+  },
+});
+const shooter = createShooter({
+  scene, camera, weapons, grenades, effects, audio, hud, hearing,
+  hooks: {
+    getStats: () => stats,
+    getPlayer: () => player,
+    getBots: () => bots,
+    getPlayerMover: () => playerMover,
+    getShootables: () => shootables,
+    now: () => simTime,
+    random,
   },
 });
 const playerMover = createMover(world.colliders, { x: 0, z: 15.5, yaw: 0 });
@@ -252,79 +265,6 @@ function startRoundSetup() {
   hud.prompt(null);
 }
 
-function muzzleWorld(out) {
-  camera.getWorldDirection(direction);
-  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
-  out.copy(camera.position).addScaledVector(direction, 0.6).addScaledVector(right, 0.22);
-  out.y -= 0.16;
-  return out;
-}
-
-function shoot(spread) {
-  const def = weapons.def();
-  if (def.kind === 'grenade') {
-    grenades.throwGrenade();
-    return;
-  }
-  if (!weapons.takeRound()) {
-    audio.dry();
-    weapons.pullTrigger();
-    return;
-  }
-  stats.shots += 1;
-  const pellets = def.pellets || 1;
-  let anyHit = false;
-  let anyKill = false;
-  for (let p = 0; p < pellets; p += 1) {
-    camera.getWorldDirection(direction);
-    direction.x += (random() * 2 - 1) * spread;
-    direction.y += (random() * 2 - 1) * spread;
-    direction.z += (random() * 2 - 1) * spread;
-    direction.normalize();
-    scene.updateMatrixWorld(true);
-    raycaster.set(camera.position, direction);
-    const hit = raycaster.intersectObjects(shootables, false)[0];
-    const from = muzzleWorld(new THREE.Vector3());
-    const end = hit ? hit.point : camera.position.clone().addScaledVector(direction, 70);
-    effects.tracer(from, end, def.tracer);
-    if (hit) {
-      if (hit.object.userData.bot) {
-        const bot = hit.object.userData.bot;
-        const part = hit.object.userData.part;
-        const isHead = part === 'head';
-        const isLeg = part === 'leg';
-        const dist = hit.distance;
-        const falloff = dist > 25 ? 0.7 : 1;
-        const mult = isHead ? def.headMult : isLeg ? 0.75 : 1;
-        const dmg = def.damage * mult * falloff;
-        const wasAlive = bot.alive;
-        bots.damage(bot, dmg, isHead, player);
-        stats.hits += 1;
-        if (isHead) stats.headshots += 1;
-        anyHit = true;
-        if (wasAlive && !bot.alive) anyKill = true;
-      } else {
-        effects.burst(hit.point, hit.face ? hit.face.normal : new THREE.Vector3(0, 1, 0), 10);
-        effects.decal(hit.point, hit.face ? hit.face.normal : new THREE.Vector3(0, 1, 0));
-      }
-    }
-  }
-  audio.shot(def.kind, 0);
-  hearing.addNoise(playerBody.position.x, playerBody.position.z, simTime);
-  if (anyHit) {
-    hud.hitMarker(anyKill, 120);
-    audio.hit(anyKill);
-    if (anyKill) weapons.state.kick = 0.09;
-  }
-  weapons.pullTrigger();
-  playerMover.recoil(0.009 + random() * 0.004, (random() * 2 - 1) * 0.004);
-  // One brass casing out of the gun, to the right.
-  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
-  effects.casing(muzzleWorld(new THREE.Vector3()), right);
-  const slot = weapons.ammo[weapons.state.current];
-  hud.setAmmo(slot.mag, slot.reserve, def.name.toUpperCase());
-}
-
 function syncCamera() {
   camera.position.set(playerBody.position.x, playerBody.position.y + playerBody.eye, playerBody.position.z);
   camera.rotation.set(playerBody.pitch, playerBody.yaw, 0, 'YXZ');
@@ -445,9 +385,9 @@ function frame(now) {
     if (player.alive && (phase === 'live' || phase === 'freeze')) {
       const def = weapons.def();
       if (def.auto) {
-        if (input.state.firing && weapons.ready()) shoot(weapons.spread(playerMover.groundSpeed()));
+        if (input.state.firing && weapons.ready()) shooter.shoot(weapons.spread(playerMover.groundSpeed()));
       } else if (input.takePressed('MouseLeft') && weapons.ready()) {
-        shoot(weapons.spread(playerMover.groundSpeed()));
+        shooter.shoot(weapons.spread(playerMover.groundSpeed()));
       }
     }
     if (input.takePressed('KeyR')) {
@@ -578,7 +518,7 @@ function runShot(name) {
     }
     settle(10);
     aimAt(new THREE.Vector3(1, 1.35, 3));
-    shoot(0);
+    shooter.shoot(0);
     // One sim step so the muzzle flash sprite and the hit flash on the struck
     // bot actually become visible before the capture freezes the frame.
     step(FIXED_STEP);
@@ -733,7 +673,7 @@ function runSelfTest() {
         if (target) {
           const p = target.mover.state.position;
           aimAt(new THREE.Vector3(p.x, 1.2, p.z));
-          shoot(weapons.spread(0));
+          shooter.shoot(weapons.spread(0));
         }
       }
       if (game.state.phase === 'matchEnd') break;
