@@ -54,7 +54,7 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       game.state.timer = 52;
       score(4, 3, 8, 5200);
       rifle(5200);
-      player.health = 1000; // staging only: bots must not down the player mid-capture
+      player.health = 1000; // staging: keep the player up
       playerBody.position.set(8, 0, -10);
       settle(30);
       const enemies = bots.list.filter((b) => b.team === 'ash');
@@ -105,18 +105,19 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       hud.prompt('Hold <b>E</b> to plant the charge');
       hud.radio('Iris', 'Planting at Kiln Hall — cover me', 'ember', true);
     } else if (name === 'scoreboard') {
+      renderer.toneMappingExposure = 0.8;
       score(7, 5, 12, 6800);
       const enemy = bots.list.find((b) => b.team === 'ash');
-      enemy.mover.teleport(16.5, -11.5, Math.PI);
+      enemy.mover.teleport(-17.8, -7.4, Math.PI * 0.75);
       enemy.alive = false;
       enemy.state = 'dead';
       enemy.fallT = 1;
       enemy.parts.group.rotation.x = -1.45;
-      enemy.parts.group.position.set(16.5, -0.1, -11.5);
-      enemy.parts.group.rotation.y = Math.PI;
-      playerBody.position.set(12, 0, -7.5);
+      enemy.parts.group.position.set(-17.8, -0.1, -7.4);
+      enemy.parts.group.rotation.y = Math.PI * 0.75;
+      playerBody.position.set(-12, 0, -2);
       settle(10);
-      aimAt(new THREE.Vector3(16.5, 0.9, -11.5));
+      aimAt(new THREE.Vector3(-19.5, 1.2, -9));
       game.state.timer = 0;
       hud.killfeed('You', 'Kestrel', true, 'ember', 'Rifle', true);
       hud.showScoreboard({
