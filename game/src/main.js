@@ -19,6 +19,7 @@ import { createBomb } from './bomb.js';
 import { createGrenades } from './grenade.js';
 import { createHearing } from './hearing.js';
 import { createShooter } from './combat.js';
+import { createRounds } from './rounds.js';
 
 const FIXED_STEP = 1 / 60;
 const params = new URLSearchParams(window.location.search);
@@ -78,7 +79,7 @@ const bomb = createBomb({
     hud.radio('You', `Charge planted at ${site} — hold the site`, 'ember');
     audio.plant();
   },
-  onDefused() { endRound('ash', 'You defused the charge'); },
+  onDefused() { rounds.endRound('ash', 'You defused the charge'); },
 });
 const hearing = createHearing();
 const grenades = createGrenades({
@@ -88,7 +89,7 @@ const grenades = createGrenades({
     getPlayerMover: () => playerMover,
     getPlayer: () => player,
     getBots: () => bots,
-    hurtPlayer,
+    hurtPlayer: (...args) => rounds.hurtPlayer(...args),
     now: () => simTime,
   },
 });
@@ -134,14 +135,6 @@ const playerBody = playerMover.state;
 
 function now() { return simTime; }
 
-function spawnPlayer() {
-  const spawn = { x: 0, z: 15.5, yaw: 0 };
-  playerMover.teleport(spawn.x, spawn.z, spawn.yaw);
-  player.alive = true;
-  player.health = 100;
-  player.crouching = false;
-}
-
 const hooks = {
   now,
   onBotShot(from, to, kind, dist) {
@@ -150,7 +143,7 @@ const hooks = {
     hearing.addNoise(from.x, from.z, simTime);
   },
   damageCombatant(combatant, amount, isHead, attacker) {
-    if (combatant.isPlayer) hurtPlayer(amount, attacker, isHead);
+    if (combatant.isPlayer) rounds.hurtPlayer(amount, attacker, isHead);
     else {
       bots.damage(combatant, amount, isHead, attacker);
       // Blood puff at the chest of the bot that was hit.
@@ -171,7 +164,7 @@ const hooks = {
       economy.killReward();
       stats.kills += 1;
     }
-    checkElimination();
+    rounds.checkElimination();
   },
   onDefuseProgress(bot, progress) {
     if (bot.team === 'ash' && game.state.planted) {
@@ -180,90 +173,20 @@ const hooks = {
   },
   onDefused(bot) {
     if (game.state.phase !== 'live' || !game.state.planted) return;
-    endRound('ash', `${bot.name} defused the charge`);
+    rounds.endRound('ash', `${bot.name} defused the charge`);
   },
 };
 
 const bots = createBots(scene, world, hooks);
 const shootables = world.shootables.concat(bots.hitMeshes);
-
-function hurtPlayer(amount, attacker, isHead) {
-  if (!player.alive || game.state.phase !== 'live') return;
-  let left = amount;
-  if (isHead && weapons.state.helmet) left *= 0.5;
-  if (weapons.state.armor > 0) {
-    const absorbed = Math.min(weapons.state.armor, left * 0.5);
-    weapons.state.armor -= absorbed;
-    left -= absorbed;
-  }
-  player.health -= left;
-  hud.damageFlash();
-  audio.hurt();
-  hud.setHealth(Math.max(0, player.health), weapons.state.armor);
-  if (player.health <= 0) {
-    player.health = 0;
-    player.alive = false;
-    stats.deaths += 1;
-    hud.setHealth(0, weapons.state.armor);
-    hud.killfeed(attacker.name, 'You', false, attacker.team);
-    hud.showOverlay('dead');
-    if (document.pointerLockElement) document.exitPointerLock();
-    checkElimination();
-  }
-}
-
-function checkElimination() {
-  if (game.state.phase !== 'live') return;
-  const emberAlive = (player.alive ? 1 : 0) + bots.aliveCount('ember');
-  const ashAlive = bots.aliveCount('ash');
-  if (ashAlive === 0) endRound('ember', 'Ash team eliminated');
-  else if (emberAlive === 0) endRound('ash', 'Ember team eliminated');
-}
-
-function endRound(winner, reason) {
-  const result = game.endRound(winner, reason);
-  if (!result) return;
-  effects.clearBomb();
-  buyOpen = false;
-  hud.hideBuy();
-  hud.setPlant(null);
-  hud.setBomb(null);
-  hud.setScore(result.score.ember, result.score.ash, game.state.round);
-  if (result.matchOver) {
-    const won = winner === 'ember';
-    hud.setEndOverlay(
-      won ? 'MATCH WON' : 'MATCH LOST',
-      `Cinder Yard ${result.score.ember} — ${result.score.ash}. ${won ? 'Ember takes the yard.' : 'Ash holds the yard.'}`,
-      'Play again',
-    );
-    if (won) audio.roundWin(); else audio.roundLose();
-    if (document.pointerLockElement) document.exitPointerLock();
-  } else {
-    hud.banner(winner === 'ember' ? 'ROUND WON' : 'ROUND LOST', reason, 3400);
-    if (winner === 'ember') audio.roundWin(); else audio.roundLose();
-  }
-}
-
-function startRoundSetup() {
-  const survived = player.alive;
-  if (!survived) weapons.resetLoadout();
-  else weapons.refill();
-  spawnPlayer();
-  bots.reset(game.state.round);
-  bomb.reset();
-  grenades.reset();
-  roundKills.length = 0;
-  effects.clearBomb();
-  hud.setHealth(100, weapons.state.armor);
-  hud.setMoney(game.state.money);
-  const slot = weapons.ammo[weapons.state.current];
-  hud.setAmmo(slot.mag, slot.reserve, WEAPONS[weapons.state.current].name.toUpperCase());
-  hud.setScore(game.state.score.ember, game.state.score.ash, game.state.round);
-  hud.setAlive(5, 5);
-  hud.setBomb(null);
-  hud.setPlant(null);
-  hud.prompt(null);
-}
+const rounds = createRounds({
+  game, weapons, hud, audio, effects, bomb, grenades,
+  getPlayer: () => player,
+  getPlayerMover: () => playerMover,
+  getBots: () => bots,
+  stats, roundKills,
+  closeBuy: () => { buyOpen = false; },
+});
 
 function syncCamera() {
   camera.position.set(playerBody.position.x, playerBody.position.y + playerBody.eye, playerBody.position.z);
@@ -342,11 +265,11 @@ function step(dt) {
       effects.explosion(new THREE.Vector3(SITES[site].center.x, 1, SITES[site].center.z), 6);
       audio.boom(0);
       effects.addShake(0.7);
-      endRound('ember', `Charge detonated at ${SITES[site].name}`);
+      rounds.endRound('ember', `Charge detonated at ${SITES[site].name}`);
     } else if (event.event === 'timeout') {
-      endRound('ash', 'Time expired — charge never planted');
+      rounds.endRound('ash', 'Time expired — charge never planted');
     } else if (event.event === 'round') {
-      startRoundSetup();
+      rounds.startRoundSetup();
       hud.banner(`ROUND ${game.state.round}`, 'Buy up — B opens the shop', 2400);
     }
   }
@@ -459,12 +382,12 @@ hud.onPlay(() => {
   audio.unlock();
   if (game.state.phase === 'menu') {
     game.startMatch();
-    startRoundSetup();
+    rounds.startRoundSetup();
     hud.banner('ROUND 1', 'Plant the charge at A or B', 2600);
     input.requestLock();
   } else if (game.state.phase === 'matchEnd') {
     game.startMatch();
-    startRoundSetup();
+    rounds.startRoundSetup();
     hud.banner('ROUND 1', 'Plant the charge at A or B', 2600);
     input.requestLock();
   } else if (!player.alive) {
@@ -490,7 +413,7 @@ function runShot(name) {
   hud.hideBuy();
   hud.hideScoreboard();
   game.startMatch();
-  startRoundSetup();
+  rounds.startRoundSetup();
   if (name === 'firefight') {
     // The cover: a wide firefight in the open courtyard, not a corridor. Three Ash
     // defenders in view, a fresh shot in the air (muzzle flash + tracer still live
@@ -660,7 +583,7 @@ function runSelfTest() {
   const t0 = performance.now();
   const errors = [];
   game.startMatch();
-  startRoundSetup();
+  rounds.startRoundSetup();
   input.state.keys.add('KeyW');
   let steps = 0;
   const maxSteps = 60 * 240; // 4 sim-minutes, or until the match ends
