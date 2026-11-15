@@ -1,8 +1,4 @@
 // Combat: the player's trigger. One job: turn a trigger pull into pellets downrange
-// and read the answer. A grenade in hand throws instead of firing; an empty mag
-// clicks dry. Each pellet is a raycast against the bots' hitboxes and the world's
-// shootables — headshots multiply, legs soften, distance falls off past 25 m —
-// and every shot is a noise bots can hear, a tracer, a casing, and recoil.
 import * as THREE from 'three';
 
 export function createShooter({ scene, camera, weapons, grenades, effects, audio, hud, hearing, hooks }) {

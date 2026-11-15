@@ -1,18 +1,16 @@
 // The bomb: the player's plant and defuse channels. Hold E inside a site to plant
-// (3 s), hold E on a planted site to defuse (5 s); the match state (game.plant,
-// the 40 s bomb timer) still lives in game.js, the blinking charge in effects.js.
-// This module is only the channel — the progress bar, the prompt, and the moment
-// the channel completes. Bot defusing runs through the hooks in main.js, not here.
 import { PLANT_TIME, DEFUSE_TIME } from './game.js';
 import { SITES } from './world.js';
 
-export function createBomb({ game, world, hud, audio, effects, getPlayer, onPlanted, onDefused }) {
+export function createBomb({ game, world, hud, audio, effects, getPlayer, hasKit, onPlanted, onDefused }) {
   let plantProgress = 0;
   let defuseProgress = 0;
+  let defuseBanner = false;
 
   function reset() {
     plantProgress = 0;
     defuseProgress = 0;
+    defuseBanner = false;
   }
 
   function step(dt, keys, phase) {
@@ -22,6 +20,8 @@ export function createBomb({ game, world, hud, audio, effects, getPlayer, onPlan
     const inB = world.inSite(pos.x, pos.z, 'B');
     const siteHere = inA ? 'A' : inB ? 'B' : null;
     const planted = game.state.planted;
+    const kit = hasKit ? hasKit() : false;
+    const defuseTime = kit ? DEFUSE_TIME / 2 : DEFUSE_TIME;
     if (player.alive && phase === 'live') {
       if (!planted && siteHere && keys.has('KeyE')) {
         plantProgress += dt;
@@ -35,15 +35,21 @@ export function createBomb({ game, world, hud, audio, effects, getPlayer, onPlan
         }
       } else if (planted && world.inSite(pos.x, pos.z, planted.site) && keys.has('KeyE')) {
         defuseProgress += dt;
-        hud.setPlant(defuseProgress / DEFUSE_TIME);
-        if (defuseProgress >= DEFUSE_TIME) {
+        hud.setPlant(defuseProgress / defuseTime);
+        if (!defuseBanner && defuseProgress / defuseTime >= 0.5) {
+          defuseBanner = true;
+          hud.banner(kit ? 'DEFUSING (KIT)' : 'DEFUSING', `${Math.round((defuseProgress / defuseTime) * 100)}% — hold E`, 1500);
+        }
+        if (defuseProgress >= defuseTime) {
           defuseProgress = 0;
+          defuseBanner = false;
           hud.setPlant(null);
           if (onDefused) onDefused();
         }
       } else {
         plantProgress = 0;
         defuseProgress = 0;
+        defuseBanner = false;
         hud.setPlant(null);
       }
       if (!planted && siteHere) hud.prompt('Hold <b>E</b> to plant the charge');
@@ -55,5 +61,5 @@ export function createBomb({ game, world, hud, audio, effects, getPlayer, onPlan
     }
   }
 
-  return { step, reset };
+  return { step, reset, planting() { return plantProgress > 0; } };
 }

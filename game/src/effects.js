@@ -1,5 +1,4 @@
 // Transient combat feedback: tracers, impact sparks, explosions and camera shake.
-// Everything is pooled and reused: the hot loop creates no objects.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 

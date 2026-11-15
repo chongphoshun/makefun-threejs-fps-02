@@ -1,10 +1,7 @@
 // Rounds: the round lifecycle. One job: everything that happens between "the round
-// starts" and "the round ends". Spawning, damage to the player, elimination checks,
-// the end-of-round banner and payout, and the setup of the next round. The match
-// numbers (score, timer, payouts) still live in game.js; this is the flow around them.
 import { WEAPONS } from './weapons.js';
 
-export function createRounds({ game, weapons, hud, audio, effects, bomb, grenades, getPlayer, getPlayerMover, getBots, stats, closeBuy }) {
+export function createRounds({ game, weapons, hud, audio, effects, bomb, grenades, getPlayer, getPlayerMover, getBots, stats, closeBuy, onPlayerDeath }) {
   function spawnPlayer() {
     const player = getPlayer();
     const playerMover = getPlayerMover();
@@ -34,9 +31,10 @@ export function createRounds({ game, weapons, hud, audio, effects, bomb, grenade
       player.alive = false;
       stats.deaths += 1;
       hud.setHealth(0, weapons.state.armor);
-      hud.killfeed(attacker.name, 'You', false, attacker.team);
+      hud.killfeed(attacker.name, 'You', isHead, attacker.team, WEAPONS[attacker.weapon].name);
       hud.showOverlay('dead');
       if (document.pointerLockElement) document.exitPointerLock();
+      if (onPlayerDeath) onPlayerDeath(attacker);
       checkElimination();
     }
   }

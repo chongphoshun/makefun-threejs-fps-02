@@ -1,8 +1,4 @@
 // Staging: deterministic captures and the headless self-test. One job: put the game
-// into a known state and either freeze a screenshot of it or drive a scripted player
-// through real rounds. It never runs in normal play — the boot in main.js calls it
-// only for ?shot=<name> or ?selftest=1. Every capture is the same simulation the
-// live game runs, staged: the firefight, the shop, the plant, the round report.
 import * as THREE from 'three';
 import { SITES } from './world.js';
 import { WEAPON_ORDER } from './weapons.js';

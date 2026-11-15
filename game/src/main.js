@@ -1,10 +1,4 @@
 // EMBERLINE boot: build the world, wire the modules, hand the frame to the loop.
-// This file owns construction and wiring only — the simulation lives in loop.js,
-// the tactics in bomb.js / grenade.js / nav.js / hearing.js / economy.js, the
-// trigger in combat.js, the round flow in rounds.js, captures in staging.js.
-// ?shot=<name> with &seed=N stages a deterministic frame for a capture, renders it
-// twice, then freezes it and sets window.__shotReady. ?selftest=1 runs the headless
-// self-test instead.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { createWorld, SITES } from './world.js';
@@ -73,9 +67,10 @@ const economy = createEconomy({ game, weapons, hud, audio });
 const bomb = createBomb({
   game, world, hud, audio, effects,
   getPlayer: () => player,
+  hasKit: () => weapons.state.kit,
   onPlanted(site) {
-    hud.banner('CHARGE PLANTED', `Defend ${SITES[site].name} — 40 seconds`, 3000);
-    hud.radio('You', `Charge planted at ${site} — hold the site`, 'ember');
+    hud.banner(`CHARGE PLANTED AT ${site}`, `${SITES[site].name} — 40 seconds to detonation`, 3000);
+    hud.radio('You', `Charge planted at ${SITES[site].name} — hold the site`, 'ember');
     audio.plant();
   },
   onDefused() { rounds.endRound('ash', 'You defused the charge'); },
@@ -108,6 +103,12 @@ const playerMover = createMover(world.colliders, { x: 0, z: 15.5, yaw: 0 });
 
 let loop; // Built after the rounds module; modules above call it through closures.
 const stats = { shots: 0, hits: 0, headshots: 0, kills: 0, deaths: 0 };
+const combatStats = new Map();
+function cstat(c) {
+  let s = combatStats.get(c);
+  if (!s) { s = { k: 0, d: 0, a: 0, hs: 0, dmg: 0, cash: 0 }; combatStats.set(c, s); }
+  return s;
+}
 
 const player = {
   isPlayer: true, name: 'You', team: 'ember',
@@ -126,6 +127,9 @@ const hooks = {
     hearing.addNoise(from.x, from.z, loop.now());
   },
   damageCombatant(combatant, amount, isHead, attacker) {
+    const st = cstat(attacker);
+    st.dmg += Math.round(amount);
+    combatant.lastHit = { by: attacker, at: loop.now() };
     if (combatant.isPlayer) rounds.hurtPlayer(amount, attacker, isHead);
     else {
       bots.damage(combatant, amount, isHead, attacker);
@@ -138,7 +142,15 @@ const hooks = {
   },
   onKill(attacker, victim, isHead) {
     const killerName = attacker.isPlayer ? 'You' : attacker.name;
-    hud.killfeed(killerName, victim.name, isHead, attacker.team);
+    const weapon = attacker.isPlayer ? WEAPONS[weapons.state.current].name : WEAPONS[attacker.weapon].name;
+    hud.killfeed(killerName, victim.name, isHead, attacker.team, weapon);
+    const ks = cstat(attacker);
+    ks.k += 1;
+    if (isHead) ks.hs += 1;
+    ks.cash += 300;
+    const lh = victim.lastHit;
+    if (lh && lh.by && lh.by !== attacker && loop.now() - lh.at < 5) cstat(lh.by).a += 1;
+    cstat(victim).d += 1;
     if (attacker.isPlayer) {
       economy.killReward();
       stats.kills += 1;
@@ -165,10 +177,39 @@ const rounds = createRounds({
   getBots: () => bots,
   stats,
   closeBuy: () => loop.closeBuy(),
+  onPlayerDeath(attacker) {
+    const ks = cstat(attacker);
+    ks.k += 1;
+    ks.cash += 300;
+    const lh = player.lastHit;
+    if (lh && lh.by && lh.by !== attacker && loop.now() - lh.at < 5) cstat(lh.by).a += 1;
+    cstat(player).d += 1;
+  },
 });
+
+function scoreboardData() {
+  const rows = [player, ...bots.list].map((c) => {
+    const s = cstat(c);
+    return {
+      name: c.isPlayer ? 'You' : c.name,
+      team: c.team === 'ember' ? 'Ember' : 'Ash',
+      k: s.k, a: s.a, d: s.d, hs: s.hs, dmg: s.dmg,
+      cash: c.isPlayer ? game.state.money : s.cash,
+    };
+  });
+  rows.sort((a, b) => b.k - a.k || b.hs - a.hs || b.dmg - a.dmg);
+  return {
+    title: 'SCOREBOARD',
+    sub: `Cinder Yard ${game.state.score.ember} — ${game.state.score.ash} · Round ${game.state.round} of 24`,
+    rows,
+    log: [`Balance: <b>$${game.state.money}</b> · Round ${game.state.round} of 24`, 'Press Tab to close'],
+  };
+}
+
 loop = createLoop({
   scene, camera, renderer, world, effects, audio, hud, game, input, weapons,
   player, playerMover, playerBody, bots, hearing, grenades, bomb, shooter, economy, rounds,
+  getScoreboard: scoreboardData,
 });
 const staging = createStaging({
   scene, camera, renderer, hud, game, rounds, weapons, bots, effects, shooter, input,

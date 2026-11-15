@@ -1,5 +1,4 @@
 // Canvas textures: every surface is drawn once at load from the palette —
-// brick, concrete, corrugated steel, wood, sandbags — and repeated per box.
 import * as THREE from 'three';
 
 function canvas(size, draw) {

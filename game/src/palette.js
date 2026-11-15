@@ -1,6 +1,4 @@
 // EMBERLINE — the look plan, in one place. Dusk in a freight yard: warm amber sun against
-// cold blue shadow, rust containers and teal steel. The same names are the CSS custom
-// properties in index.html, so the HUD and the 3D scene share one palette.
 export const PALETTE = {
   canvas: '#171009', // sky / fog
   surface: '#2e2113', // ground, dark panels

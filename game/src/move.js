@@ -1,6 +1,4 @@
 // A capsule mover shared by the player and every bot: acceleration, friction, gravity,
-// crouch and jump, resolved as a box against the world's colliders one axis at a time, so
-// a wall never swallows a body. One implementation, no duplicated collision code.
 import * as THREE from 'three';
 
 const STAND_HEIGHT = 1.72;

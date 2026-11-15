@@ -1,6 +1,4 @@
 // The match: rounds, the bomb, and the money. One object holds every number the match
-// runs on — phase, timer, score, wallet — so the loop in main.js only asks it what
-// happened this step and plays the result.
 export const WIN_SCORE = 13;
 export const TOTAL_ROUNDS = 24;
 export const ROUND_TIME = 100;

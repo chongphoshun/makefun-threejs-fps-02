@@ -1,6 +1,4 @@
 // The armoury: five guns, three grenades, vest, helmet, defuse kit. damage is
-// per body hit; headMult multiplies it on a head shot; pellets fires that many
-// rays per trigger pull.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 

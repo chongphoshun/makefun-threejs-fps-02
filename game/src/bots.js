@@ -1,6 +1,4 @@
 // The bots: four Ember teammates and five Ash defenders. Bodies on the shared
-// mover, a small state machine, burst-fire guns, waypoint routes, line of sight
-// and hearing. A bot shoots with the same ray-sphere test the player is shot with.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { createMover } from './move.js';

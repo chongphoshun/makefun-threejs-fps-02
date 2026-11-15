@@ -1,8 +1,4 @@
 // Grenades: throw, bounce, detonate. One job: a grenade leaves the hand, bounces off
-// the world's colliders, and at the end of its 2.6 s fuse does what its type says —
-// HE hurts anything in the open within 6.5 m, smoke lays a 14 s cloud bots cannot
-// see through, flash blinds anyone who can see the burst. The smoke list is exposed
-// because bot line-of-sight reads it every step.
 import * as THREE from 'three';
 import { WEAPONS } from './weapons.js';
 import { PALETTE } from './palette.js';

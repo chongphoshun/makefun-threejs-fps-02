@@ -1,6 +1,4 @@
 // Every sound is synthesised with WebAudio: no audio files, no network, nothing to load.
-// One shared noise buffer, one master gain, short envelopes. The context is created lazily
-// on the first user gesture, so autoplay policy never blocks the game.
 export function createAudio() {
   let ctx = null;
   let master = null;

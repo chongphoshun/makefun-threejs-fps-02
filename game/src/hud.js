@@ -1,7 +1,5 @@
 // The DOM HUD: crosshair, hit marker, health, ammo, money, timer, score, alive pips,
-// kill feed, a live minimap, the buy menu and the overlays. It never touches the
-// simulation; main.js pushes numbers in and reads the play/buy callbacks out.
-import { WEAPONS, WEAPON_ORDER, ARMOR_PRICE, HELMET_PRICE } from './weapons.js';
+import { WEAPONS, ARMOR_PRICE, HELMET_PRICE, KIT_PRICE } from './weapons.js';
 import { PALETTE } from './palette.js';
 
 const COPY = {
@@ -83,23 +81,36 @@ export function createHud(world) {
     return `${def.damage} dmg · ${def.mag} rounds`;
   }
 
+  const SHOP_CATS = [
+    ['PISTOLS', ['pistol']],
+    ['RIFLES', ['smg', 'rifle', 'sniper', 'shotty']],
+    ['GEAR', ['armor', 'helmet', 'kit']],
+    ['UTILITY', ['he', 'smoke', 'flash']],
+  ];
+  const SHOP_KEYS = { pistol: '1', smg: '2', rifle: '3', sniper: '4', shotty: '5', he: '6', smoke: '7', flash: '8', armor: '9', helmet: '0', kit: '' };
+
   function buildBuyMenu(onBuy) {
     const grid = $('buy-grid');
-    const items = [...WEAPON_ORDER, 'armor', 'helmet'];
-    items.forEach((id, i) => {
-      const isArmor = id === 'armor';
-      const isHelmet = id === 'helmet';
-      const key = String((i + 1) % 10);
-      const name = isArmor ? 'Vest Armour' : isHelmet ? 'Combat Helmet' : WEAPONS[id].name;
-      const price = isArmor ? ARMOR_PRICE : isHelmet ? HELMET_PRICE : WEAPONS[id].price;
-      const desc = isArmor ? 'Absorbs half of all damage' : isHelmet ? 'Halves headshot damage' : buyDesc(id);
-      const btn = document.createElement('button');
-      btn.className = 'buy-item';
-      btn.dataset.item = id;
-      btn.innerHTML = `<span class="buy-key">${key}</span><span class="buy-name">${name}</span><span class="buy-price">$${price}</span><span class="buy-desc">${desc}</span>`;
-      btn.addEventListener('click', () => onBuy(id));
-      grid.appendChild(btn);
-    });
+    for (const [cat, ids] of SHOP_CATS) {
+      const head = document.createElement('div');
+      head.className = 'buy-cat';
+      head.textContent = `ARMOURY · ${cat}`;
+      grid.appendChild(head);
+      for (const id of ids) {
+        const isArmor = id === 'armor';
+        const isHelmet = id === 'helmet';
+        const isKit = id === 'kit';
+        const name = isArmor ? 'Vest Armour' : isHelmet ? 'Combat Helmet' : isKit ? 'Defuse Kit' : WEAPONS[id].name;
+        const price = isArmor ? ARMOR_PRICE : isHelmet ? HELMET_PRICE : isKit ? KIT_PRICE : WEAPONS[id].price;
+        const desc = isArmor ? 'Absorbs half of all damage' : isHelmet ? 'Halves headshot damage' : isKit ? 'Defuse twice as fast' : buyDesc(id);
+        const btn = document.createElement('button');
+        btn.className = 'buy-item';
+        btn.dataset.item = id;
+        btn.innerHTML = `<span class="buy-key">${SHOP_KEYS[id]}</span><span class="buy-name">${name}</span><span class="buy-price">$${price}</span><span class="buy-desc">${desc}</span>`;
+        btn.addEventListener('click', () => onBuy(id));
+        grid.appendChild(btn);
+      }
+    }
   }
 
   function setPips(el, alive, total, team) {
@@ -161,10 +172,10 @@ export function createHud(world) {
       setPips(pipsEmber, emberAlive, 5, 'ember');
       setPips(pipsAsh, ashAlive, 5, 'ash');
     },
-    killfeed(killer, victim, headshot, killerTeam, sticky = false) {
+    killfeed(killer, victim, headshot, killerTeam, weapon = '', sticky = false) {
       const row = document.createElement('div');
       row.className = 'feed-row';
-      row.innerHTML = `<span class="${killerTeam}">${killer}</span><span class="feed-mid">${headshot ? '◉' : '✕'}</span><span>${victim}</span>`;
+      row.innerHTML = `<span class="${killerTeam}">${killer}</span>${weapon ? `<span class="feed-weapon">${weapon}</span>` : ''}<span class="feed-mid">${headshot ? '◉' : '✕'}</span><span>${victim}</span>`;
       feed.prepend(row);
       while (feed.children.length > 5) feed.removeChild(feed.lastChild);
       if (sticky) return;
@@ -193,13 +204,14 @@ export function createHud(world) {
       scoreSub.textContent = data.sub;
       let mvp = null;
       for (const row of data.rows) {
-        if (!mvp || row.k > mvp.k || (row.k === mvp.k && row.hs > mvp.hs)) mvp = row;
+        if (!mvp || row.k > mvp.k || (row.k === mvp.k && (row.hs > mvp.hs || (row.hs === mvp.hs && row.dmg > mvp.dmg)))) mvp = row;
       }
-      let html = '<tr><th>PLAYER</th><th>TEAM</th><th class="num">K</th><th class="num">D</th><th class="num">HEADSHOTS</th><th class="num">ACC</th></tr>';
+      let html = '<tr><th>PLAYER</th><th>TEAM</th><th class="num">K</th><th class="num">A</th><th class="num">D</th><th class="num">HS%</th><th class="num">DMG</th><th class="num">CASH</th></tr>';
       for (const row of data.rows) {
         const star = row === mvp ? '★ ' : '';
         const cls = row === mvp ? ' class="mvp-row"' : '';
-        html += `<tr${cls}><td>${star}${row.name}</td><td>${row.team}</td><td class="num">${row.k}</td><td class="num">${row.d}</td><td class="num">${row.hs}</td><td class="num">${row.acc}</td></tr>`;
+        const hsPct = row.k > 0 ? `${Math.round((row.hs / row.k) * 100)}%` : '—';
+        html += `<tr${cls}><td>${star}${row.name}</td><td>${row.team}</td><td class="num">${row.k}</td><td class="num">${row.a}</td><td class="num">${row.d}</td><td class="num">${hsPct}</td><td class="num">${row.dmg}</td><td class="num">$${row.cash}</td></tr>`;
       }
       scoreTable.innerHTML = html;
       scoreLog.innerHTML = data.log.map((line) => `<div>${line}</div>`).join('');
@@ -261,10 +273,14 @@ export function createHud(world) {
     hideBuy() {
       buyMenu.hidden = true;
     },
-    buyAfford(item, money) {
-      const price = item === 'armor' ? ARMOR_PRICE : item === 'helmet' ? HELMET_PRICE : WEAPONS[item].price;
+    buyAfford(item, money, owned = false) {
+      const price = item === 'armor' ? ARMOR_PRICE : item === 'helmet' ? HELMET_PRICE : item === 'kit' ? KIT_PRICE : WEAPONS[item].price;
       const btn = buyMenu.querySelector(`[data-item="${item}"]`);
-      if (btn) btn.classList.toggle('cant', money < price);
+      if (!btn) return;
+      btn.classList.toggle('cant', money < price && !owned);
+      btn.classList.toggle('owned', owned);
+      const priceEl = btn.querySelector('.buy-price');
+      if (priceEl) priceEl.textContent = owned ? 'OWNED' : `$${price}`;
     },
     showOverlay(mode, score) {
       const text = COPY[mode];

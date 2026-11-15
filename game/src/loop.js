@@ -1,20 +1,17 @@
 // The loop: one fixed 60 Hz simulation step and the frame that drives it. One job:
-// turn input into movement, run every system once per step, and paint the result.
-// The step owns the order — movement, ADS, weapons, effects, grenades, bots, the
-// bomb channel, the match clock, then the HUD — so a step is the whole game in
-// miniature. The frame is only input, the fixed-step accumulator, and the render.
 import * as THREE from 'three';
 import { SITES } from './world.js';
 import { WEAPONS, WEAPON_ORDER } from './weapons.js';
 
 export const FIXED_STEP = 1 / 60;
 
-export function createLoop({ scene, camera, renderer, world, effects, audio, hud, game, input, weapons, player, playerMover, playerBody, bots, hearing, grenades, bomb, shooter, economy, rounds }) {
+export function createLoop({ scene, camera, renderer, world, effects, audio, hud, game, input, weapons, player, playerMover, playerBody, bots, hearing, grenades, bomb, shooter, economy, rounds, getScoreboard }) {
   let simTime = 0;
   let frozen = false;
   let accumulator = 0;
   let lastTime = performance.now();
   let buyOpen = false;
+  let scoreVisible = false;
   let lastWeaponId = 'pistol';
   let lastPlayerStep = 0;
   let mapTimer = 0;
@@ -108,6 +105,7 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
     }
 
     bomb.step(dt, keys, phase);
+    weapons.showCharge(bomb.planting());
 
     const inA = world.inSite(playerBody.position.x, playerBody.position.z, 'A');
     const inB = world.inSite(playerBody.position.x, playerBody.position.z, 'B');
@@ -150,9 +148,14 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
         buyOpen = !buyOpen;
         if (buyOpen) {
           hud.showBuy(game.state.money);
-          for (const item of [...WEAPON_ORDER, 'armor', 'helmet']) hud.buyAfford(item, game.state.money);
+          economy.refreshBuyMenu();
           audio.click();
         } else hud.hideBuy();
+      }
+      if (input.takePressed('Tab') && getScoreboard) {
+        scoreVisible = !scoreVisible;
+        if (scoreVisible) hud.showScoreboard(getScoreboard());
+        else hud.hideScoreboard();
       }
       if (input.takePressed('KeyG')) {
         weapons.nextGrenade();

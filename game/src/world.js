@@ -1,6 +1,4 @@
 // Cinder Yard: an industrial brickworks at sunset, 44 x 36 m. Two bomb sites
-// (Kiln Hall west, Clay Pits east), three lanes, a mid choke, container stacks
-// and crate cover. Every box is a collider and a surface a bullet stops on.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { TEXTURES, letterDecal, skyTexture, signTexture, pavingTexture, flagTexture, glowTexture } from './textures.js';

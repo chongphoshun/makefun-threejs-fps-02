@@ -1,6 +1,4 @@
 // Keyboard and mouse, and the pointer lock that turns the mouse into look. Plain browser
-// APIs only. Besides the held key set it keeps a per-frame "pressed" queue so a single tap
-// of R, B, E, G or a number key fires exactly one action even when the frame rate varies.
 export function createInput(canvas, onLockChange) {
   const keys = new Set();
   const pressed = new Set();
@@ -11,7 +9,7 @@ export function createInput(canvas, onLockChange) {
       if (!keys.has(event.code)) pressed.add(event.code);
       keys.add(event.code);
     } else keys.delete(event.code);
-    if (event.code === 'Space') event.preventDefault();
+    if (event.code === 'Space' || event.code === 'Tab') event.preventDefault();
   }
 
   window.addEventListener('keydown', (event) => setKey(event, true));

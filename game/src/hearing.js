@@ -1,8 +1,4 @@
 // Sound: the noise registry and bot hearing. Every gunshot and footstep lands here
-// with a position, a time, a hearing radius and the team that made it. A bot only
-// turns on a noise that is still fresh, inside its radius, and not heard again within
-// 4 s. Gunshots pull any nearby bot to the fight; footsteps only betray the enemy
-// team, so teammates never chase each other around the map.
 export function createHearing() {
   const noises = [];
 
