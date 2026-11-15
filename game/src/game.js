@@ -1,7 +1,8 @@
 // The match: rounds, the bomb, and the money. One object holds every number the match
 // runs on — phase, timer, score, wallet — so the loop in main.js only asks it what
 // happened this step and plays the result.
-export const WIN_SCORE = 6;
+export const WIN_SCORE = 13;
+export const TOTAL_ROUNDS = 24;
 export const ROUND_TIME = 100;
 export const FREEZE_TIME = 10;
 export const BOMB_TIME = 40;
@@ -70,7 +71,10 @@ export function createGame() {
       state.lossStreak += 1;
     }
     state.planted = null;
-    const matchOver = state.score[winner] >= WIN_SCORE;
+    // First to 13 ends it early; otherwise the higher score after round 24 wins,
+    // and a tie plays on into overtime until somebody leads.
+    const matchOver = state.score[winner] >= WIN_SCORE
+      || (state.round >= TOTAL_ROUNDS && state.score.ember !== state.score.ash);
     state.phase = matchOver ? 'matchEnd' : 'roundEnd';
     state.timer = matchOver ? 0 : 4;
     return { winner, reason, matchOver, score: { ...state.score } };

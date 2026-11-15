@@ -1,7 +1,7 @@
 // The DOM HUD: crosshair, hit marker, health, ammo, money, timer, score, alive pips,
 // kill feed, a live minimap, the buy menu and the overlays. It never touches the
 // simulation; main.js pushes numbers in and reads the play/buy callbacks out.
-import { WEAPONS, WEAPON_ORDER, ARMOR_PRICE } from './weapons.js';
+import { WEAPONS, WEAPON_ORDER, ARMOR_PRICE, HELMET_PRICE } from './weapons.js';
 import { PALETTE } from './palette.js';
 
 const COPY = {
@@ -70,23 +70,33 @@ export function createHud(world) {
   let lastScore = '';
   let lastPips = '';
 
+  function buyDesc(id) {
+    const def = WEAPONS[id];
+    if (!def) return '';
+    if (id === 'he') return 'HE blast, 6 m radius';
+    if (id === 'smoke') return 'Smoke screen, 14 s — blocks sight';
+    if (id === 'flash') return 'Blinds anyone looking, 2 s';
+    if (def.kind === 'shotgun') return `${def.damage} dmg × ${def.pellets} pellets · ${def.mag} rounds`;
+    return `${def.damage} dmg · ${def.mag} rounds`;
+  }
+
   function buildBuyMenu(onBuy) {
     const grid = $('buy-grid');
-    for (const id of WEAPON_ORDER) {
-      const def = WEAPONS[id];
+    const items = [...WEAPON_ORDER, 'armor', 'helmet'];
+    items.forEach((id, i) => {
+      const isArmor = id === 'armor';
+      const isHelmet = id === 'helmet';
+      const key = String((i + 1) % 10);
+      const name = isArmor ? 'Vest Armour' : isHelmet ? 'Combat Helmet' : WEAPONS[id].name;
+      const price = isArmor ? ARMOR_PRICE : isHelmet ? HELMET_PRICE : WEAPONS[id].price;
+      const desc = isArmor ? 'Absorbs half of all damage' : isHelmet ? 'Halves headshot damage' : buyDesc(id);
       const btn = document.createElement('button');
       btn.className = 'buy-item';
       btn.dataset.item = id;
-      btn.innerHTML = `<span class="buy-key">${WEAPON_ORDER.indexOf(id) + 1}</span><span class="buy-name">${def.name}</span><span class="buy-price">$${def.price}</span><span class="buy-desc">${def.kind === 'grenade' ? 'HE blast, 6 m radius' : `${def.damage} dmg · ${def.mag} rounds`}</span>`;
+      btn.innerHTML = `<span class="buy-key">${key}</span><span class="buy-name">${name}</span><span class="buy-price">$${price}</span><span class="buy-desc">${desc}</span>`;
       btn.addEventListener('click', () => onBuy(id));
       grid.appendChild(btn);
-    }
-    const armor = document.createElement('button');
-    armor.className = 'buy-item';
-    armor.dataset.item = 'armor';
-    armor.innerHTML = `<span class="buy-key">6</span><span class="buy-name">Vest Armour</span><span class="buy-price">$${ARMOR_PRICE}</span><span class="buy-desc">Absorbs half of all damage</span>`;
-    armor.addEventListener('click', () => onBuy('armor'));
-    grid.appendChild(armor);
+    });
   }
 
   function setPips(el, alive, total, team) {
@@ -139,7 +149,7 @@ export function createHud(world) {
       lastScore = key;
       scoreEmber.textContent = String(ember);
       scoreAsh.textContent = String(ash);
-      roundLabel.textContent = `ROUND ${round} · FIRST TO 6`;
+      roundLabel.textContent = round > 24 ? `ROUND ${round} · OVERTIME` : `ROUND ${round} OF 24`;
     },
     setAlive(emberAlive, ashAlive) {
       const key = `${emberAlive}-${ashAlive}`;
@@ -235,7 +245,7 @@ export function createHud(world) {
       buyMenu.hidden = true;
     },
     buyAfford(item, money) {
-      const price = item === 'armor' ? ARMOR_PRICE : WEAPONS[item].price;
+      const price = item === 'armor' ? ARMOR_PRICE : item === 'helmet' ? HELMET_PRICE : WEAPONS[item].price;
       const btn = buyMenu.querySelector(`[data-item="${item}"]`);
       if (btn) btn.classList.toggle('cant', money < price);
     },

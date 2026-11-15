@@ -8,7 +8,7 @@ import { PALETTE } from './palette.js';
 import { createWorld, SITES } from './world.js';
 import { createMover } from './move.js';
 import { createInput } from './input.js';
-import { createWeapons, WEAPONS, WEAPON_ORDER, ARMOR_PRICE } from './weapons.js';
+import { createWeapons, WEAPONS, WEAPON_ORDER, GRENADE_ORDER, ARMOR_PRICE, HELMET_PRICE } from './weapons.js';
 import { createBots } from './bots.js';
 import { createEffects } from './effects.js';
 import { createAudio } from './audio.js';
@@ -67,6 +67,8 @@ let lastWeaponId = 'pistol';
 let buyOpen = false;
 let noises = [];
 const grenades = [];
+const smokes = [];
+const stats = { shots: 0, hits: 0, headshots: 0, kills: 0, deaths: 0 };
 const direction = new THREE.Vector3();
 const muzzle = new THREE.Vector3();
 const shakeVec = new THREE.Vector3();
@@ -101,8 +103,11 @@ const hooks = {
     if (noises.length > 24) noises.shift();
   },
   damageCombatant(combatant, amount, isHead, attacker) {
-    if (combatant.isPlayer) hurtPlayer(amount, attacker);
+    if (combatant.isPlayer) hurtPlayer(amount, attacker, isHead);
     else bots.damage(combatant, amount, isHead, attacker);
+  },
+  radio(name, text, team) {
+    hud.radio(name, text, team);
   },
   onKill(attacker, victim, isHead) {
     const killerName = attacker.isPlayer ? 'You' : attacker.name;
@@ -110,6 +115,7 @@ const hooks = {
     if (attacker.isPlayer) {
       game.addKillMoney();
       hud.setMoney(game.state.money);
+      stats.kills += 1;
     }
     checkElimination();
   },
@@ -127,9 +133,10 @@ const hooks = {
 const bots = createBots(scene, world, hooks);
 const shootables = world.shootables.concat(bots.hitMeshes);
 
-function hurtPlayer(amount, attacker) {
+function hurtPlayer(amount, attacker, isHead) {
   if (!player.alive || game.state.phase !== 'live') return;
   let left = amount;
+  if (isHead && weapons.state.helmet) left *= 0.5;
   if (weapons.state.armor > 0) {
     const absorbed = Math.min(weapons.state.armor, left * 0.5);
     weapons.state.armor -= absorbed;
@@ -142,6 +149,7 @@ function hurtPlayer(amount, attacker) {
   if (player.health <= 0) {
     player.health = 0;
     player.alive = false;
+    stats.deaths += 1;
     hud.setHealth(0, weapons.state.armor);
     hud.killfeed(attacker.name, 'You', false, attacker.team);
     hud.showOverlay('dead');
@@ -220,35 +228,50 @@ function shoot(spread) {
     weapons.pullTrigger();
     return;
   }
-  camera.getWorldDirection(direction);
-  direction.x += (random() * 2 - 1) * spread;
-  direction.y += (random() * 2 - 1) * spread;
-  direction.z += (random() * 2 - 1) * spread;
-  direction.normalize();
-  scene.updateMatrixWorld(true);
-  raycaster.set(camera.position, direction);
-  const hit = raycaster.intersectObjects(shootables, false)[0];
-  const from = muzzleWorld(new THREE.Vector3());
-  const end = hit ? hit.point : camera.position.clone().addScaledVector(direction, 70);
-  effects.tracer(from, end, def.tracer);
+  stats.shots += 1;
+  const pellets = def.pellets || 1;
+  let anyHit = false;
+  let anyKill = false;
+  for (let p = 0; p < pellets; p += 1) {
+    camera.getWorldDirection(direction);
+    direction.x += (random() * 2 - 1) * spread;
+    direction.y += (random() * 2 - 1) * spread;
+    direction.z += (random() * 2 - 1) * spread;
+    direction.normalize();
+    scene.updateMatrixWorld(true);
+    raycaster.set(camera.position, direction);
+    const hit = raycaster.intersectObjects(shootables, false)[0];
+    const from = muzzleWorld(new THREE.Vector3());
+    const end = hit ? hit.point : camera.position.clone().addScaledVector(direction, 70);
+    effects.tracer(from, end, def.tracer);
+    if (hit) {
+      if (hit.object.userData.bot) {
+        const bot = hit.object.userData.bot;
+        const part = hit.object.userData.part;
+        const isHead = part === 'head';
+        const isLeg = part === 'leg';
+        const dist = hit.distance;
+        const falloff = dist > 25 ? 0.7 : 1;
+        const mult = isHead ? def.headMult : isLeg ? 0.75 : 1;
+        const dmg = def.damage * mult * falloff;
+        const wasAlive = bot.alive;
+        bots.damage(bot, dmg, isHead, player);
+        stats.hits += 1;
+        if (isHead) stats.headshots += 1;
+        anyHit = true;
+        if (wasAlive && !bot.alive) anyKill = true;
+      } else {
+        effects.burst(hit.point, hit.face ? hit.face.normal : new THREE.Vector3(0, 1, 0), 10);
+      }
+    }
+  }
   audio.shot(def.kind, 0);
   noises.push({ x: playerBody.position.x, z: playerBody.position.z, time: simTime });
   if (noises.length > 24) noises.shift();
-  if (hit) {
-    if (hit.object.userData.bot) {
-      const bot = hit.object.userData.bot;
-      const isHead = hit.object.userData.part === 'head';
-      const dist = hit.distance;
-      const falloff = dist > 25 ? 0.7 : 1;
-      const dmg = def.damage * (isHead ? def.headMult : 1) * falloff;
-      const wasAlive = bot.alive;
-      bots.damage(bot, dmg, isHead, player);
-      hud.hitMarker(!bot.alive, 120);
-      audio.hit(!bot.alive);
-      if (wasAlive && !bot.alive) weapons.state.kick = 0.09;
-    } else {
-      effects.burst(hit.point, hit.face ? hit.face.normal : new THREE.Vector3(0, 1, 0), 10);
-    }
+  if (anyHit) {
+    hud.hitMarker(anyKill, 120);
+    audio.hit(anyKill);
+    if (anyKill) weapons.state.kick = 0.09;
   }
   weapons.pullTrigger();
   playerMover.recoil(0.009 + random() * 0.004, (random() * 2 - 1) * 0.004);
@@ -257,16 +280,18 @@ function shoot(spread) {
 }
 
 function throwGrenade() {
+  const type = weapons.state.current;
   if (!weapons.throwGrenade()) return;
   camera.getWorldDirection(direction);
+  const color = type === 'he' ? PALETTE.accent : type === 'smoke' ? 0x9a9a9a : 0xffffff;
   const mesh = new THREE.Mesh(
     new THREE.SphereGeometry(0.09, 10, 8),
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.accent), roughness: 0.5 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.5 }),
   );
   mesh.position.copy(camera.position).addScaledVector(direction, 0.4);
   scene.add(mesh);
   grenades.push({
-    mesh, fuse: 2.6,
+    mesh, fuse: 2.6, type,
     vel: direction.clone().multiplyScalar(15).add(new THREE.Vector3(0, 3.5, 0)).add(playerMover.state.velocity),
   });
   audio.click();
@@ -276,6 +301,20 @@ function throwGrenade() {
 
 function explodeGrenade(g) {
   const p = g.mesh.position;
+  if (g.type === 'smoke') {
+    effects.smokeCloud(p);
+    smokes.push({ x: p.x, y: p.y + 1, z: p.z, r: 4.5, until: simTime + 14 });
+    audio.boom(Math.min(1, camera.position.distanceTo(p) / 40));
+    scene.remove(g.mesh);
+    return;
+  }
+  if (g.type === 'flash') {
+    effects.flashBurst(p);
+    audio.boom(Math.min(1, camera.position.distanceTo(p) / 40));
+    blindFromFlash(p);
+    scene.remove(g.mesh);
+    return;
+  }
   effects.explosion(p, 6);
   audio.boom(Math.min(1, camera.position.distanceTo(p) / 40));
   effects.addShake(0.4);
@@ -296,6 +335,38 @@ function explodeGrenade(g) {
     else bots.damage(v, dmg, false, player);
   }
   scene.remove(g.mesh);
+}
+
+// A flashbang blinds anyone who can see the burst: the player gets a white wash,
+// bots stand blind for a couple of seconds. A wall between eye and burst saves you.
+function blindFromFlash(p) {
+  const eye = camera.position;
+  const distP = eye.distanceTo(p);
+  if (distP < 25) {
+    camera.getWorldDirection(direction);
+    const toFlash = new THREE.Vector3().subVectors(p, eye).normalize();
+    const facing = direction.dot(toFlash);
+    if (facing > 0.2) {
+      raycaster.set(eye, toFlash);
+      raycaster.far = distP;
+      if (!raycaster.intersectObjects(world.shootables, false)[0]) {
+        hud.flashBlind((1 - distP / 25) * (0.4 + facing * 0.6));
+      }
+    }
+  }
+  for (const bot of bots.list) {
+    if (!bot.alive) continue;
+    const body = bot.mover.state.position;
+    const dx = p.x - body.x;
+    const dy = (p.y - 1.5) - body.y;
+    const dz = p.z - body.z;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist > 20 || dist < 0.01) continue;
+    raycaster.set(p, new THREE.Vector3(-dx / dist, -dy / dist, -dz / dist));
+    raycaster.far = dist;
+    if (raycaster.intersectObjects(world.shootables, false)[0]) continue;
+    bots.blind(bot, simTime + 2.2);
+  }
 }
 
 function stepGrenades(dt) {
@@ -332,14 +403,15 @@ function stepGrenades(dt) {
 
 function tryBuy(id) {
   if (game.state.phase !== 'freeze') return;
-  const price = id === 'armor' ? ARMOR_PRICE : WEAPONS[id].price;
+  const price = id === 'armor' ? ARMOR_PRICE : id === 'helmet' ? HELMET_PRICE : WEAPONS[id].price;
   if (!game.spend(price)) { audio.dry(); return; }
   if (id === 'armor') weapons.buyArmor();
+  else if (id === 'helmet') weapons.buyHelmet();
   else weapons.buy(id);
   audio.click();
   hud.setMoney(game.state.money);
   hud.setAmmo(weapons.ammo[weapons.state.current].mag, weapons.ammo[weapons.state.current].reserve, WEAPONS[weapons.state.current].name.toUpperCase());
-  for (const item of [...WEAPON_ORDER, 'armor']) hud.buyAfford(item, game.state.money);
+  for (const item of [...WEAPON_ORDER, 'armor', 'helmet']) hud.buyAfford(item, game.state.money);
 }
 
 function syncCamera() {
@@ -402,8 +474,11 @@ function step(dt) {
   stepGrenades(dt);
 
   // Bots run their own simulation every step.
+  for (let i = smokes.length - 1; i >= 0; i -= 1) {
+    if (smokes[i].until <= simTime) smokes.splice(i, 1);
+  }
   bots.step(dt, {
-    now: simTime, phase, player, noises,
+    now: simTime, phase, player, noises, smokes,
     plantedSite: game.state.planted ? game.state.planted.site : null,
   });
 
@@ -442,6 +517,7 @@ function step(dt) {
         plantProgress = 0;
         hud.setPlant(null);
         hud.banner('CHARGE PLANTED', `Defend ${SITES[siteHere].name} — 40 seconds`, 3000);
+        hud.radio('You', `Charge planted at ${siteHere} — hold the site`, 'ember');
         audio.plant();
       }
     } else if (planted && world.inSite(playerBody.position.x, playerBody.position.z, planted.site) && keys.has('KeyE')) {
@@ -501,15 +577,12 @@ function frame(now) {
       buyOpen = !buyOpen;
       if (buyOpen) {
         hud.showBuy(game.state.money);
-        for (const item of [...WEAPON_ORDER, 'armor']) hud.buyAfford(item, game.state.money);
+        for (const item of [...WEAPON_ORDER, 'armor', 'helmet']) hud.buyAfford(item, game.state.money);
         audio.click();
       } else hud.hideBuy();
     }
     if (input.takePressed('KeyG')) {
-      if (weapons.state.grenades > 0) {
-        lastWeaponId = weapons.state.current;
-        weapons.switchTo('grenade');
-      }
+      weapons.nextGrenade();
     }
     if (input.takePressed('KeyQ')) weapons.switchTo(lastWeaponId);
     WEAPON_ORDER.forEach((id, i) => {
@@ -521,7 +594,8 @@ function frame(now) {
         }
       }
     });
-    if (input.takePressed('Digit6') && game.state.phase === 'freeze' && buyOpen) tryBuy('armor');
+    if (input.takePressed('Digit9') && game.state.phase === 'freeze' && buyOpen) tryBuy('armor');
+    if (input.takePressed('Digit0') && game.state.phase === 'freeze' && buyOpen) tryBuy('helmet');
     accumulator += dt;
     let steps = 0;
     while (accumulator >= FIXED_STEP && steps < 5) {

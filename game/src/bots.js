@@ -49,14 +49,23 @@ export function createBots(scene, world, hooks) {
   const bots = [];
   const hitMeshes = [];
   const spotted = new Map();
+  let activeSmokes = [];
+
+  function areaName(x, z) {
+    if (x < -9) return 'A site';
+    if (x > 9) return 'B site';
+    return 'mid';
+  }
 
   function buildModel(bot) {
     const group = new THREE.Group();
     const mat = teamMat[bot.team];
     const legL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.52, 0.16), darkMat);
     legL.position.set(-0.11, 0.26, 0);
+    legL.userData = { bot, part: 'leg' };
     const legR = legL.clone();
     legR.position.x = 0.11;
+    legR.userData = { bot, part: 'leg' };
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), mat);
     torso.position.y = 1.06;
     torso.userData = { bot, part: 'torso' };
@@ -71,7 +80,7 @@ export function createBots(scene, world, hooks) {
     gun.position.set(0.14, 1.28, -0.3);
     group.add(legL, legR, torso, vest, head, helmet, gun);
     group.traverse((mesh) => { if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; } });
-    hitMeshes.push(torso, head);
+    hitMeshes.push(torso, head, legL, legR);
     return { group, legL, legR, torso, head, gun };
   }
 
@@ -84,7 +93,7 @@ export function createBots(scene, world, hooks) {
       role: 'hold', state: 'hold', path: [], pathIdx: 0, holdNode: 0,
       target: null, targetIsPlayer: false,
       lastSeen: new THREE.Vector3(), lastSeenTime: -99,
-      reactAt: 0, burstLeft: 0, nextShotAt: 0, pauseUntil: 0,
+      reactAt: 0, burstLeft: 0, nextShotAt: 0, pauseUntil: 0, blindUntil: 0,
       strafeDir: 1, strafeUntil: 0, scanPhase: Math.random() * 6,
       defuseT: 0, fallT: 0, walkPhase: Math.random() * 6, speed: 4.2,
       hearAt: 0, hearPos: new THREE.Vector3(), thinkAt: Math.random() * 0.15,
@@ -103,7 +112,8 @@ export function createBots(scene, world, hooks) {
     return combatant.isPlayer ? combatant.pos : combatant.mover.state.position;
   }
 
-  // Line of sight from a bot's eyes to a combatant's chest, through the world only.
+  // Line of sight from a bot's eyes to a combatant's chest, through the world only —
+  // and through no smoke cloud: a cloud between the two breaks the line.
   function canSee(bot, combatant) {
     const from = tmpEye.set(bodyOf(bot).x, bodyOf(bot).y + 1.5, bodyOf(bot).z);
     const to = tmpChest.set(bodyOf(combatant).x, bodyOf(combatant).y + 1.05, bodyOf(combatant).z);
@@ -112,7 +122,18 @@ export function createBots(scene, world, hooks) {
     raycaster.set(from, tmpDir);
     raycaster.far = dist;
     const blocked = raycaster.intersectObjects(world.shootables, false)[0];
-    return !blocked;
+    if (blocked) return false;
+    for (const s of activeSmokes) {
+      const cx = s.x - from.x;
+      const cy = s.y - from.y;
+      const cz = s.z - from.z;
+      const t = Math.max(0, Math.min(dist, cx * tmpDir.x + cy * tmpDir.y + cz * tmpDir.z));
+      const dx = from.x + tmpDir.x * t - s.x;
+      const dy = from.y + tmpDir.y * t - s.y;
+      const dz = from.z + tmpDir.z * t - s.z;
+      if (dx * dx + dy * dy + dz * dz < s.r * s.r) return false;
+    }
+    return true;
   }
 
   function aimError(bot, combatant, dist) {
@@ -175,6 +196,7 @@ export function createBots(scene, world, hooks) {
   function damage(bot, amount, isHead, attacker) {
     if (!bot.alive) return;
     let left = amount;
+    if (isHead && bot.helmet) left *= 0.5;
     if (bot.armor > 0) {
       const absorbed = Math.min(bot.armor, left * 0.5);
       bot.armor -= absorbed;
@@ -189,6 +211,8 @@ export function createBots(scene, world, hooks) {
       bot.fallT = 0;
       bot.target = null;
       hooks.onKill(attacker, bot, isHead);
+      const mate = bots.find((b) => b.team === bot.team && b.alive && b !== bot);
+      if (mate && hooks.radio) hooks.radio(mate.name, `Man down — ${areaName(bot.mover.state.position.x, bot.mover.state.position.z)}`, bot.team);
     } else if (attacker) {
       // Being shot at is information: turn toward the shooter and remember them.
       bot.lastSeen.set(bodyOf(attacker).x, bodyOf(attacker).y, bodyOf(attacker).z);
@@ -204,9 +228,11 @@ export function createBots(scene, world, hooks) {
       bot.mover.teleport(spawn.x, spawn.z, spawn.yaw);
       bot.health = 100;
       bot.armor = bot.team === 'ash' && round >= 2 ? 50 : 0;
+      bot.helmet = round >= 3;
       bot.alive = true;
       bot.state = 'hold';
       bot.target = null;
+      bot.blindUntil = 0;
       bot.defuseT = 0;
       bot.fallT = 0;
       bot.burstLeft = 0;
@@ -265,6 +291,9 @@ export function createBots(scene, world, hooks) {
         bot.targetIsPlayer = !!visible.isPlayer;
         bot.reactAt = now + REACT[bot.team] + Math.random() * 0.3;
         bot.burstLeft = 0;
+        if (visible.isPlayer && hooks.radio) {
+          hooks.radio(bot.name, `Contact — ${areaName(pos.x, pos.z)}`, bot.team);
+        }
       }
       bot.state = 'engage';
       if (visible.team === 'ash') spotted.set(visible.id, now);
@@ -287,6 +316,7 @@ export function createBots(scene, world, hooks) {
           bot.hearAt = now;
           bot.hearPos.set(noise.x, 0, noise.z);
           bot.state = 'investigate';
+          if (hooks.radio) hooks.radio(bot.name, 'Heard shots — rotating', bot.team);
           setPath(bot, routeThrough(world.nearestNode(pos.x, pos.z), [world.nearestNode(noise.x, noise.z)]), 'advance');
           break;
         }
@@ -323,6 +353,14 @@ export function createBots(scene, world, hooks) {
     if (now - bot.thinkAt > 0.15) {
       bot.thinkAt = now;
       think(bot, ctx);
+    }
+    // Flashbang blindness: no aiming, no shooting, no thinking about targets.
+    if (now < bot.blindUntil) {
+      bot.target = null;
+      bot.state = 'hold';
+      bot.parts.group.position.set(pos.x, pos.y, pos.z);
+      bot.parts.group.rotation.y = body.yaw;
+      return;
     }
     let wishX = 0;
     let wishZ = 0;
@@ -410,6 +448,7 @@ export function createBots(scene, world, hooks) {
   }
 
   function step(dt, ctx) {
+    activeSmokes = ctx.smokes || [];
     for (const bot of bots) stepBot(bot, dt, ctx);
   }
 
@@ -419,6 +458,7 @@ export function createBots(scene, world, hooks) {
     step,
     reset,
     damage,
+    blind(bot, until) { bot.blindUntil = until; bot.target = null; },
     spottedAt(id) { return spotted.get(id) ?? -99; },
     aliveCount(team) { return bots.filter((b) => b.team === team && b.alive).length; },
     forEach(fn) { bots.forEach(fn); },

@@ -47,8 +47,37 @@ export function createEffects(scene) {
   scene.add(boomLight);
   let boomLife = 0;
 
-  let shake = 0;
-  const tmp = new THREE.Vector3();
+  // Smoke: three pooled clouds, each seven soft grey spheres that swell and drift.
+  const SMOKE_CLOUDS = 3;
+  const SMOKE_PUFFS = 7;
+  const smokeGroups = [];
+  const smokeLife = new Float32Array(SMOKE_CLOUDS);
+  const smokeSeed = new Float32Array(SMOKE_CLOUDS * SMOKE_PUFFS * 3);
+  for (let c = 0; c < SMOKE_CLOUDS; c += 1) {
+    const group = new THREE.Group();
+    group.visible = false;
+    for (let i = 0; i < SMOKE_PUFFS; i += 1) {
+      const puff = new THREE.Mesh(
+        new THREE.SphereGeometry(1.5, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0x9a9a9a, transparent: true, opacity: 0.32, depthWrite: false }),
+      );
+      group.add(puff);
+    }
+    scene.add(group);
+    smokeGroups.push(group);
+  }
+  let smokeNext = 0;
+
+  // Flashbang burst: a white sphere and a hard light, gone in a blink.
+  const flashMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }),
+  );
+  flashMesh.visible = false;
+  scene.add(flashMesh);
+  const flashLight = new THREE.PointLight(0xffffff, 0, 26);
+  scene.add(flashLight);
+  let flashLife = 0;
 
   function tracer(from, to, color) {
     const t = tracers[tracerNext];
@@ -94,7 +123,61 @@ export function createEffects(scene) {
     shake = Math.max(shake, 0.5);
   }
 
+  function smokeCloud(point) {
+    const c = smokeNext;
+    smokeNext = (smokeNext + 1) % SMOKE_CLOUDS;
+    const group = smokeGroups[c];
+    group.position.copy(point);
+    group.visible = true;
+    for (let i = 0; i < SMOKE_PUFFS; i += 1) {
+      const o = (c * SMOKE_PUFFS + i) * 3;
+      smokeSeed[o] = (Math.random() * 2 - 1) * 2.4;
+      smokeSeed[o + 1] = Math.random() * 1.6 + 0.4;
+      smokeSeed[o + 2] = (Math.random() * 2 - 1) * 2.4;
+      const puff = group.children[i];
+      puff.position.set(smokeSeed[o], smokeSeed[o + 1], smokeSeed[o + 2]);
+      puff.scale.setScalar(0.6);
+    }
+    smokeLife[c] = 14;
+  }
+
+  function flashBurst(point) {
+    flashMesh.position.copy(point);
+    flashMesh.scale.setScalar(0.4);
+    flashMesh.material.opacity = 0.95;
+    flashMesh.visible = true;
+    flashLight.position.copy(point);
+    flashLight.intensity = 120;
+    flashLife = 0.25;
+  }
+
+  let shake = 0;
+  const tmp = new THREE.Vector3();
+
   function step(dt) {
+    for (let c = 0; c < SMOKE_CLOUDS; c += 1) {
+      if (smokeLife[c] <= 0) continue;
+      smokeLife[c] -= dt;
+      const group = smokeGroups[c];
+      const age = 14 - Math.max(0, smokeLife[c]);
+      const grow = Math.min(1, age / 2) * 0.9 + 0.6;
+      const fade = smokeLife[c] < 3 ? smokeLife[c] / 3 : 1;
+      for (let i = 0; i < SMOKE_PUFFS; i += 1) {
+        const puff = group.children[i];
+        puff.scale.setScalar(grow);
+        puff.material.opacity = 0.32 * fade;
+        puff.position.y += dt * 0.15;
+      }
+      if (smokeLife[c] <= 0) group.visible = false;
+    }
+    if (flashLife > 0) {
+      flashLife -= dt;
+      const k = Math.max(0, flashLife) / 0.25;
+      flashMesh.scale.setScalar(0.4 + (1 - k) * 5);
+      flashMesh.material.opacity = 0.95 * k;
+      flashLight.intensity = 120 * k;
+      if (flashLife <= 0) { flashMesh.visible = false; flashLight.intensity = 0; }
+    }
     for (const t of tracers) {
       if (!t.line.visible) continue;
       t.life -= dt;
@@ -126,7 +209,7 @@ export function createEffects(scene) {
   }
 
   return {
-    tracer, burst, explosion, step,
+    tracer, burst, explosion, smokeCloud, flashBurst, step,
     addShake(amount) { shake = Math.min(0.7, shake + amount); },
     shakeOffset(out) {
       if (shake <= 0) return out.set(0, 0, 0);
