@@ -95,12 +95,13 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       score(6, 4, 11, 3800);
       rifle(3800);
       const enemy = bots.list.find((b) => b.team === 'ash');
-      place(enemy, -15.5, -12.5, Math.PI * 0.5);
-      playerBody.position.set(-10, 0, -12);
+      place(enemy, -14.5, -10, Math.PI * 0.5);
+      playerBody.position.set(-2.5, 0, -12);
       settle(10);
-      aimAt(new THREE.Vector3(-15, 0.2, -12.5));
-      effects.smokeCloud(new THREE.Vector3(-17, 1, -5));
+      aimAt(new THREE.Vector3(-15.5, 0.6, -12.5));
+      effects.smokeCloud(new THREE.Vector3(-9, 1, -5));
       effects.plantBomb(-16.5, -12.5);
+      settle(6); // blink the charge lamp on for the capture
       weapons.showCharge(true);
       hud.setPlant(2 / 3);
       hud.prompt('Hold <b>E</b> to plant the charge');
