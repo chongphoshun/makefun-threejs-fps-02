@@ -68,16 +68,36 @@ export function createBots(scene, world, hooks) {
     const legR = legL.clone();
     legR.position.x = 0.11;
     legR.userData = { bot, part: 'leg' };
+    // Boots ride on the legs, so they swing with the walk. Children of the leg
+    // meshes are not raycast (shootables are tested non-recursively), so the
+    // hitbox stays the leg box.
+    for (const leg of [legL, legR]) {
+      const boot = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.12, 0.28), darkMat);
+      boot.position.set(0, -0.22, 0.04);
+      leg.add(boot);
+    }
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), torsoMat);
     torso.position.y = 1.06;
     torso.userData = { bot, part: 'torso' };
-    const vest = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.4, 0.34), darkMat);
+    // Vest: team-coloured armour plates over the torso, dark chest rig on top.
+    const vest = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.42, 0.34), mat);
     vest.position.y = 1.1;
+    const rig = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.06), darkMat);
+    rig.position.set(0, 1.08, -0.19);
+    // Backpack with a bedroll on top, so the silhouette reads from behind too.
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.18), darkMat);
+    pack.position.set(0, 1.1, 0.26);
+    const roll = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.2), mat);
+    roll.position.set(0, 1.4, 0.26);
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), skinMat);
     head.position.y = 1.56;
     head.userData = { bot, part: 'head' };
-    const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.36), mat);
+    // Helmet: a dome over the head plus a dark visor strip at the front.
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), mat);
+    helmet.scale.set(1, 0.65, 1.1);
     helmet.position.y = 1.66;
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.04), darkMat);
+    visor.position.set(0, 1.6, -0.15);
     // Arms: dark sleeves angled forward, holding the gun.
     const armL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.5, 0.13), darkMat);
     armL.position.set(-0.33, 1.12, -0.08);
@@ -86,7 +106,7 @@ export function createBots(scene, world, hooks) {
     armR.position.x = 0.33;
     const gun = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.55), darkMat);
     gun.position.set(0.14, 1.28, -0.3);
-    group.add(legL, legR, torso, vest, head, helmet, armL, armR, gun);
+    group.add(legL, legR, torso, vest, rig, pack, roll, head, helmet, visor, armL, armR, gun);
     group.traverse((mesh) => { if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; } });
     hitMeshes.push(torso, head, legL, legR);
     return { group, legL, legR, torso, torsoMat, armL, armR, head, gun };
@@ -104,6 +124,7 @@ export function createBots(scene, world, hooks) {
       reactAt: 0, burstLeft: 0, nextShotAt: 0, pauseUntil: 0, blindUntil: 0,
       strafeDir: 1, strafeUntil: 0, scanPhase: Math.random() * 6,
       defuseT: 0, fallT: 0, flashT: 0, walkPhase: Math.random() * 6, speed: 4.2,
+      fallDir: 1, fallAxis: 'x', aimBlend: 0,
       hearAt: 0, hearPos: new THREE.Vector3(), thinkAt: Math.random() * 0.15,
     };
     const spawn = SPAWNS[team][index % SPAWNS[team].length];
@@ -218,6 +239,10 @@ export function createBots(scene, world, hooks) {
       bot.alive = false;
       bot.state = 'dead';
       bot.fallT = 0;
+      // Ragdoll-style fall: a random direction each time — backwards, forwards,
+      // or sideways — so dead bots do not all fold the same way.
+      bot.fallDir = Math.random() < 0.5 ? 1 : -1;
+      bot.fallAxis = Math.random() < 0.6 ? 'x' : 'z';
       bot.target = null;
       hooks.onKill(attacker, bot, isHead);
       const mate = bots.find((b) => b.team === bot.team && b.alive && b !== bot);
@@ -248,7 +273,12 @@ export function createBots(scene, world, hooks) {
       bot.parts.torsoMat.emissive.setHex(0x000000);
       bot.parts.torsoMat.emissiveIntensity = 0;
       bot.burstLeft = 0;
+      bot.fallDir = 1;
+      bot.fallAxis = 'x';
+      bot.aimBlend = 0;
       bot.parts.group.rotation.set(0, 0, 0);
+      bot.parts.armL.rotation.z = 0;
+      bot.parts.armR.rotation.z = 0;
       bot.parts.group.position.y = 0;
       bot.parts.group.visible = true;
       const startNode = world.nearestNode(spawn.x, spawn.z);
@@ -357,8 +387,13 @@ export function createBots(scene, world, hooks) {
     if (!bot.alive) {
       if (bot.fallT < 1) {
         bot.fallT = Math.min(1, bot.fallT + dt / 0.4);
-        bot.parts.group.rotation.x = -bot.fallT * 1.45;
+        // Fall around the chosen axis with a small overshoot settle, arms flailing out.
+        const a = -bot.fallT * 1.45 * bot.fallDir;
+        if (bot.fallAxis === 'x') { bot.parts.group.rotation.x = a; bot.parts.group.rotation.z = 0; }
+        else { bot.parts.group.rotation.z = a; bot.parts.group.rotation.x = 0; }
         bot.parts.group.position.y = -bot.fallT * 0.1;
+        bot.parts.armL.rotation.z = bot.fallT * 1.2;
+        bot.parts.armR.rotation.z = -bot.fallT * 1.2;
       }
       return;
     }
@@ -455,8 +490,16 @@ export function createBots(scene, world, hooks) {
     const swing = Math.min(1, mover.groundSpeed() / 4) * 0.5;
     bot.parts.legL.rotation.x = Math.sin(bot.walkPhase) * swing;
     bot.parts.legR.rotation.x = -Math.sin(bot.walkPhase) * swing;
-    bot.parts.armL.rotation.x = -0.5 - Math.sin(bot.walkPhase) * swing * 0.7;
-    bot.parts.armR.rotation.x = -0.5 + Math.sin(bot.walkPhase) * swing * 0.7;
+    // Poses: engaging aims both arms forward at the target; running leans the
+    // body forward; standing still breathes.
+    const aiming = bot.state === 'engage' && bot.target ? 1 : 0;
+    bot.aimBlend += (aiming - bot.aimBlend) * Math.min(1, dt * 8);
+    const armBase = -0.5 - bot.aimBlend * 0.65;
+    bot.parts.armL.rotation.x = armBase - Math.sin(bot.walkPhase) * swing * 0.7 * (1 - bot.aimBlend);
+    bot.parts.armR.rotation.x = armBase + Math.sin(bot.walkPhase) * swing * 0.7 * (1 - bot.aimBlend);
+    bot.parts.group.rotation.x = swing * 0.18;
+    if (mover.groundSpeed() < 0.5) bot.parts.torso.scale.y = 1 + Math.sin(now * 2 + bot.walkPhase) * 0.012;
+    else bot.parts.torso.scale.y = 1;
     // Hit flash decay: torso glows red, fading over ~0.3 s.
     if (bot.flashT > 0) {
       bot.flashT = Math.max(0, bot.flashT - dt * 3.5);
