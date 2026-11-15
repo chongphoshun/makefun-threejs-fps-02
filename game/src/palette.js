@@ -18,7 +18,7 @@ export const PALETTE = {
   sand: '#8a7a4a', // sandbags
   hazard: '#e8b820', // hazard stripes
   zoneB: '#2e8f86', // B site bright teal
-  gunmetal: '#23262b', // dark weapon metal
+  gunmetal: '#4b5158', // lighter weapon metal (was #23262b, read near-black)
 };
 
 export function shade(name) {

@@ -22,7 +22,7 @@ export const HELMET_PRICE = 350;
 export const ARMOR_MAX = 100;
 
 const GRIP = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.surface), roughness: 0.7, metalness: 0.2 });
-const STEEL = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.gunmetal), roughness: 0.35, metalness: 0.65 });
+const STEEL = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.gunmetal), roughness: 0.45, metalness: 0.5 });
 const EMBER = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.accent), roughness: 0.5, metalness: 0.3 });
 const GREY = new THREE.MeshStandardMaterial({ color: new THREE.Color('#8a8a8a'), roughness: 0.6, metalness: 0.2 });
 const WHITE = new THREE.MeshStandardMaterial({ color: new THREE.Color('#e8e8e8'), roughness: 0.5, metalness: 0.1 });

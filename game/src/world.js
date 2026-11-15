@@ -199,7 +199,7 @@ export function createWorld(scene) {
   }
 
   // Light: a low amber sun, a cool sky fill, and a floodlight over each site.
-  const sky = new THREE.HemisphereLight(new THREE.Color('#ffe2b8'), new THREE.Color('#2c1e11'), 1.35);
+  const sky = new THREE.HemisphereLight(new THREE.Color('#ffe2b8'), new THREE.Color('#2c1e11'), 1.62);
   scene.add(sky);
   const sun = new THREE.DirectionalLight(new THREE.Color('#ffb36b'), 4.5);
   sun.position.set(14, 18, 12);
@@ -213,12 +213,14 @@ export function createWorld(scene) {
   sun.shadow.camera.far = 70;
   sun.shadow.bias = -0.0006;
   scene.add(sun, sun.target);
-  const fill = new THREE.DirectionalLight(new THREE.Color('#5a6f8a'), 0.85);
+  const fill = new THREE.DirectionalLight(new THREE.Color('#5a6f8a'), 1.02);
   fill.position.set(-10, 12, 14);
   scene.add(fill);
   for (const key of ['A', 'B']) {
     const site = SITES[key];
-    const lamp = new THREE.PointLight(new THREE.Color(key === 'A' ? PALETTE.accent : PALETTE.zoneB), 20, 18);
+    // B lamp lower than A (12 vs 20): the teal east wall blew out to near-white
+    // at 20 under the raised ambient; 12 keeps it teal.
+    const lamp = new THREE.PointLight(new THREE.Color(key === 'A' ? PALETTE.accent : PALETTE.zoneB), key === 'A' ? 20 : 12, 18);
     lamp.position.set(site.center.x, 4.4, site.center.z);
     scene.add(lamp);
   }

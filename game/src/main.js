@@ -48,9 +48,14 @@ const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerH
 scene.add(camera);
 // Small warm fill light parented to the camera so the dark-metal viewmodel reads
 // with highlights instead of a black silhouette. Visual only.
-const vmLight = new THREE.PointLight(new THREE.Color('#ffe0b8'), 2.5, 2.5);
+const vmLight = new THREE.PointLight(new THREE.Color('#ffe0b8'), 4, 3);
 vmLight.position.set(0.2, 0.1, -0.4);
 camera.add(vmLight);
+// Cool rim light from the other side so the weapon's shape reads, not just its
+// lit face. Visual only.
+const vmRim = new THREE.PointLight(new THREE.Color('#8fb4ff'), 2, 2);
+vmRim.position.set(-0.3, 0.2, -0.3);
+camera.add(vmRim);
 
 const world = createWorld(scene);
 const effects = createEffects(scene);
@@ -690,31 +695,33 @@ function runShot(name) {
     weapons.buy('rifle');
     game.state.money = 5200;
     weapons.switchTo('rifle');
-    playerBody.position.set(0, 0, 6);
+    // Staged at A site, not the mid choke: warm orange site, two Ash defenders
+    // in the open strip south of the rust container, both in view.
+    playerBody.position.set(-16, 0, -8.5);
     settle(30);
-    // Two Ash defenders in the lane, seen through the mid choke doorway.
+    // Two Ash defenders in the open strip, seen across A site.
     const enemy = bots.list.find((b) => b.team === 'ash');
-    enemy.mover.teleport(-0.3, 0.5, Math.PI);
+    enemy.mover.teleport(-18, -12.3, -Math.PI / 2);
     enemy.state = 'hold';
     enemy.path = [];
     const second = bots.list.filter((b) => b.team === 'ash')[1];
-    second.mover.teleport(0.6, -2.8, Math.PI * 0.9);
+    second.mover.teleport(-16.5, -13, -Math.PI / 2);
     second.state = 'hold';
     second.path = [];
     settle(10);
-    aimAt(new THREE.Vector3(-0.3, 1.35, 0.5));
+    aimAt(new THREE.Vector3(-18, 1.35, -12.3));
     shoot(0);
     // One sim step so the muzzle flash sprite and the hit flash on the struck
     // bot actually become visible before the capture freezes the frame.
     step(FIXED_STEP);
     // Return fire: a blue tracer from the defender back past the camera.
-    effects.tracer(new THREE.Vector3(-0.3, 1.35, 0.5), new THREE.Vector3(0.3, 1.2, 5.5), 0x7fb8ff);
+    effects.tracer(new THREE.Vector3(-18, 1.35, -12.3), new THREE.Vector3(-15, 1.2, -6.5), 0x7fb8ff);
     hud.hitMarker(false, 60000);
     hud.setScore(4, 3, 8);
     hud.setMoney(5200);
     hud.killfeed('Vex', 'Onyx', true, 'ember', true);
     hud.killfeed('You', 'Wren', false, 'ember', true);
-    hud.radio('Rook', 'Contact — mid, two of them', 'ember', true);
+    hud.radio('Rook', 'Contact — A site, two of them', 'ember', true);
     hud.radio('Vex', 'Holding A, need backup', 'ember', true);
   } else if (name === 'buy') {
     game.state.money = 6400;
@@ -743,8 +750,9 @@ function runShot(name) {
     enemy.state = 'hold';
     enemy.path = [];
     // Stand off at the site's east edge so the defender is in the open, not
-    // behind the site containers.
-    playerBody.position.set(-8, 0, -12);
+    // behind the site containers. One step back from the original take; a second
+    // step back put a spawn bot in frame, so this is the best framing.
+    playerBody.position.set(-6, 0, -12);
     settle(10);
     aimAt(new THREE.Vector3(-15.5, 1.3, -12.5));
     plantProgress = 2;
@@ -760,16 +768,18 @@ function runShot(name) {
     game.state.round = 12;
     game.state.money = 6800;
     const enemy = bots.list.find((b) => b.team === 'ash');
-    enemy.mover.teleport(1.5, 0.5, Math.PI);
+    enemy.mover.teleport(16.5, -11.5, Math.PI);
     enemy.alive = false;
     enemy.state = 'dead';
     enemy.fallT = 1;
     enemy.parts.group.rotation.x = -1.45;
-    enemy.parts.group.position.set(1.5, -0.1, 0.5);
+    enemy.parts.group.position.set(16.5, -0.1, -11.5);
     enemy.parts.group.rotation.y = Math.PI;
-    playerBody.position.set(0, 0, 6);
+    // Standing at B site: teal walls and the big "B" floor decal fill the
+    // background around the panel.
+    playerBody.position.set(12, 0, -7.5);
     settle(10);
-    aimAt(new THREE.Vector3(1.5, 0.9, 0.5));
+    aimAt(new THREE.Vector3(16.5, 0.9, -11.5));
     game.state.timer = 0;
     hud.setScore(7, 5, 12);
     hud.setMoney(6800);
