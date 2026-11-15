@@ -1,4 +1,4 @@
-// Rounds: the round lifecycle. One job: everything that happens between "the round
+// Rounds: round lifecycle.
 import { WEAPONS } from './weapons.js';
 
 export function createRounds({ game, weapons, hud, audio, effects, bomb, grenades, getPlayer, getPlayerMover, getBots, stats, closeBuy, onPlayerDeath }) {

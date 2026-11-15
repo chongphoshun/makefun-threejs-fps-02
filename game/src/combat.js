@@ -1,4 +1,4 @@
-// Combat: the player's trigger. One job: turn a trigger pull into pellets downrange
+// Combat: trigger pull to pellets downrange.
 import * as THREE from 'three';
 
 export function createShooter({ scene, camera, weapons, grenades, effects, audio, hud, hearing, hooks }) {

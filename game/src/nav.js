@@ -1,4 +1,4 @@
-// Bot pathing: the waypoint graph of Cinder Yard, BFS pathfinding over it, and
+// Nav: waypoint graph, BFS pathfinding.
 export const NODES = [
   [0, 15], [-5, 14], [5, 14], [0, 10], [-10, 10], [10, 10], [-10, 5], [10, 5],
   [0, 5], [0, 0], [0, -5], [-10, -2], [10, -2], [-10, -9], [10, -9], [0, -11],

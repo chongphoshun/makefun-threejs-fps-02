@@ -1,4 +1,4 @@
-// Grenades: throw, bounce, detonate. One job: a grenade leaves the hand, bounces off
+// Grenades: throw, bounce, detonate.
 import * as THREE from 'three';
 import { WEAPONS } from './weapons.js';
 import { PALETTE } from './palette.js';

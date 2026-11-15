@@ -1,4 +1,4 @@
-// The loop: one fixed 60 Hz simulation step and the frame that drives it. One job:
+// Loop: fixed 60 Hz sim step + frame.
 import * as THREE from 'three';
 import { SITES } from './world.js';
 import { WEAPONS, WEAPON_ORDER } from './weapons.js';

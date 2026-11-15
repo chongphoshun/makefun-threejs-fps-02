@@ -1,4 +1,4 @@
-// Transient combat feedback: tracers, impact sparks, explosions and camera shake.
+// Effects: tracers, sparks, smoke, bomb, shake.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { glowTexture } from './textures.js';
@@ -50,7 +50,6 @@ export function createEffects(scene) {
   const SMOKE_PUFFS = 10;
   const smokeGroups = [];
   const smokeLife = new Float32Array(SMOKE_CLOUDS);
-  const smokeSeed = new Float32Array(SMOKE_CLOUDS * SMOKE_PUFFS * 3);
   const smokeBase = new Float32Array(SMOKE_CLOUDS * SMOKE_PUFFS * 2); // width, opacity
   for (let c = 0; c < SMOKE_CLOUDS; c += 1) {
     const group = new THREE.Group();
@@ -76,23 +75,14 @@ export function createEffects(scene) {
   scene.add(flashLight);
   let flashLife = 0;
 
-  const blotchCanvas = document.createElement('canvas');
-  blotchCanvas.width = 64;
-  blotchCanvas.height = 64;
-  const bctx = blotchCanvas.getContext('2d');
-  const bg = bctx.createRadialGradient(32, 32, 2, 32, 32, 30);
-  bg.addColorStop(0, 'rgba(18,10,5,0.95)');
-  bg.addColorStop(0.6, 'rgba(30,18,8,0.6)');
-  bg.addColorStop(1, 'rgba(30,18,8,0)');
-  bctx.fillStyle = bg;
-  bctx.fillRect(0, 0, 64, 64);
-  const blotchTex = new THREE.CanvasTexture(blotchCanvas);
+  // Scorch decal: the same radial glow texture, tinted dark.
+  const blotchTex = glowTexture();
   const DECAL_COUNT = 12;
   const decals = [];
   for (let i = 0; i < DECAL_COUNT; i += 1) {
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.3, 0.3),
-      new THREE.MeshBasicMaterial({ map: blotchTex, transparent: true, opacity: 0, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ map: blotchTex, color: new THREE.Color('#2a1608'), transparent: true, opacity: 0, depthWrite: false }),
     );
     mesh.visible = false;
     scene.add(mesh);
@@ -188,12 +178,8 @@ export function createEffects(scene) {
     group.position.copy(point);
     group.visible = true;
     for (let i = 0; i < SMOKE_PUFFS; i += 1) {
-      const o = (c * SMOKE_PUFFS + i) * 3;
-      smokeSeed[o] = (Math.random() * 2 - 1) * 1.8;
-      smokeSeed[o + 1] = Math.random() * 1.2 + 0.1;
-      smokeSeed[o + 2] = (Math.random() * 2 - 1) * 1.8;
       const puff = group.children[i];
-      puff.position.set(smokeSeed[o], smokeSeed[o + 1], smokeSeed[o + 2]);
+      puff.position.set((Math.random() * 2 - 1) * 1.8, Math.random() * 1.2 + 0.1, (Math.random() * 2 - 1) * 1.8);
       const b = (c * SMOKE_PUFFS + i) * 2;
       smokeBase[b] = 2.4 + Math.random() * 1.4;
       smokeBase[b + 1] = 0.38 + Math.random() * 0.14;
@@ -239,6 +225,7 @@ export function createEffects(scene) {
 
   function plantBomb(x, z) {
     bombGroup.position.set(x, 0, z);
+    bombGroup.scale.setScalar(2.0); // big readable charge: body, lamp, wires
     bombGroup.visible = true;
     bombTime = 0;
   }

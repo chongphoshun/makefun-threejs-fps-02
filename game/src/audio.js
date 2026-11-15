@@ -1,4 +1,4 @@
-// Every sound is synthesised with WebAudio: no audio files, no network, nothing to load.
+// Sound: all WebAudio, synthesised, no files.
 export function createAudio() {
   let ctx = null;
   let master = null;

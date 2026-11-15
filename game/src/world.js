@@ -1,4 +1,4 @@
-// Cinder Yard: industrial brickworks at sunset, 44 x 36 m.
+// Cinder Yard: brickworks at sunset, 44 x 36 m.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { TEXTURES, letterDecal, skyTexture, signTexture, pavingTexture, flagTexture, glowTexture } from './textures.js';
@@ -132,20 +132,20 @@ export function createWorld(scene) {
     group.add(decal);
   }
 
-  const ZONE_TINTS = [
-    { x0: -7, x1: 7, z0: -18.5, z1: 18.5, color: PALETTE.concrete, opacity: 0.08 },
-    { x0: -8, x1: 8, z0: 12, z1: 18.5, color: PALETTE.accent, opacity: 0.07 },
-    { x0: -8, x1: 8, z0: -18.5, z1: -12, color: PALETTE.ash, opacity: 0.07 },
-    { x0: -22.5, x1: -12.5, z0: -18.5, z1: -8.5, color: PALETTE.accent, opacity: 0.10 },
-    { x0: 12.5, x1: 22.5, z0: -18.5, z1: -8.5, color: PALETTE.zoneB, opacity: 0.10 },
+  const ZONE_TINTS = [ // x0, x1, z0, z1, color, opacity
+    [-7, 7, -18.5, 18.5, PALETTE.concrete, 0.08],
+    [-8, 8, 12, 18.5, PALETTE.accent, 0.07],
+    [-8, 8, -18.5, -12, PALETTE.ash, 0.07],
+    [-22.5, -12.5, -18.5, -8.5, PALETTE.accent, 0.10],
+    [12.5, 22.5, -18.5, -8.5, PALETTE.zoneB, 0.10],
   ];
-  for (const t of ZONE_TINTS) {
+  for (const [x0, x1, z0, z1, color, opacity] of ZONE_TINTS) {
     const tint = new THREE.Mesh(
-      new THREE.PlaneGeometry(t.x1 - t.x0, t.z1 - t.z0),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(t.color), transparent: true, opacity: t.opacity, depthWrite: false }),
+      new THREE.PlaneGeometry(x1 - x0, z1 - z0),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity, depthWrite: false }),
     );
     tint.rotation.x = -Math.PI / 2;
-    tint.position.set((t.x0 + t.x1) / 2, 0.02, (t.z0 + t.z1) / 2);
+    tint.position.set((x0 + x1) / 2, 0.02, (z0 + z1) / 2);
     group.add(tint);
   }
 

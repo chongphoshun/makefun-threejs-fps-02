@@ -1,16 +1,17 @@
-// The armoury: five guns, three grenades, vest, helmet, defuse kit. damage is
+// Armoury: 5 guns, 3 grenades, buildRifle.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 
+const W = (name, kind, price, damage, headMult, rate, auto, mag, reserve, spreadStill, spreadMove, reloadTime, tracer, pellets) => ({ name, kind, price, damage, headMult, rate, auto, mag, reserve, spreadStill, spreadMove, reloadTime, tracer, pellets });
 export const WEAPONS = {
-  pistol: { name: 'P9 Sidearm', kind: 'pistol', price: 0, damage: 26, headMult: 3, rate: 0.16, auto: false, mag: 12, reserve: 48, spreadStill: 0.004, spreadMove: 0.02, reloadTime: 1.4, tracer: 0xffe1a0, pellets: 1 },
-  smg: { name: 'VK-9 Rasp', kind: 'smg', price: 1500, damage: 22, headMult: 3, rate: 0.083, auto: true, mag: 28, reserve: 84, spreadStill: 0.006, spreadMove: 0.03, reloadTime: 1.8, tracer: 0xffc46b, pellets: 1 },
-  rifle: { name: 'AR-77 Ember', kind: 'rifle', price: 2700, damage: 33, headMult: 4, rate: 0.1, auto: true, mag: 30, reserve: 90, spreadStill: 0.003, spreadMove: 0.024, reloadTime: 2.0, tracer: 0xffb36b, pellets: 1 },
-  sniper: { name: 'LR-88 Longbow', kind: 'sniper', price: 4750, damage: 95, headMult: 4, rate: 1.15, auto: false, mag: 5, reserve: 15, spreadStill: 0.0008, spreadMove: 0.03, reloadTime: 2.8, tracer: 0xfff2cc, pellets: 1 },
-  shotty: { name: 'Moss-12 Breacher', kind: 'shotgun', price: 1700, damage: 14, headMult: 2, rate: 0.9, auto: false, mag: 6, reserve: 24, spreadStill: 0.03, spreadMove: 0.05, reloadTime: 2.6, tracer: 0xffd9a0, pellets: 8 },
-  he: { name: 'SPARK-4 HE', kind: 'grenade', price: 300, damage: 120, headMult: 1, rate: 0.9, auto: false, mag: 1, reserve: 0, spreadStill: 0, spreadMove: 0, reloadTime: 0, tracer: 0xff7a1a, pellets: 1 },
-  smoke: { name: 'GHOST-2 Smoke', kind: 'grenade', price: 400, damage: 0, headMult: 1, rate: 0.9, auto: false, mag: 1, reserve: 0, spreadStill: 0, spreadMove: 0, reloadTime: 0, tracer: 0xcccccc, pellets: 1 },
-  flash: { name: 'DAZZLE-1 Flash', kind: 'grenade', price: 250, damage: 0, headMult: 1, rate: 0.9, auto: false, mag: 1, reserve: 0, spreadStill: 0, spreadMove: 0, reloadTime: 0, tracer: 0xffffff, pellets: 1 },
+  pistol: W('P9 Sidearm', 'pistol', 0, 26, 3, 0.16, false, 12, 48, 0.004, 0.02, 1.4, 0xffe1a0, 1),
+  smg: W('VK-9 Rasp', 'smg', 1500, 22, 3, 0.083, true, 28, 84, 0.006, 0.03, 1.8, 0xffc46b, 1),
+  rifle: W('AR-77 Ember', 'rifle', 2700, 33, 4, 0.1, true, 30, 90, 0.003, 0.024, 2.0, 0xffb36b, 1),
+  sniper: W('LR-88 Longbow', 'sniper', 4750, 95, 4, 1.15, false, 5, 15, 0.0008, 0.03, 2.8, 0xfff2cc, 1),
+  shotty: W('Moss-12 Breacher', 'shotgun', 1700, 14, 2, 0.9, false, 6, 24, 0.03, 0.05, 2.6, 0xffd9a0, 8),
+  he: W('SPARK-4 HE', 'grenade', 300, 120, 1, 0.9, false, 1, 0, 0, 0, 0, 0xff7a1a, 1),
+  smoke: W('GHOST-2 Smoke', 'grenade', 400, 0, 1, 0.9, false, 1, 0, 0, 0, 0, 0xcccccc, 1),
+  flash: W('DAZZLE-1 Flash', 'grenade', 250, 0, 1, 0.9, false, 1, 0, 0, 0, 0, 0xffffff, 1),
 };
 export const WEAPON_ORDER = ['pistol', 'smg', 'rifle', 'sniper', 'shotty', 'he', 'smoke', 'flash'];
 export const GRENADE_ORDER = ['he', 'smoke', 'flash'];
@@ -62,6 +63,51 @@ function part(w, h, d, x, y, z, mat, rx = 0, rz = 0) {
   return mesh;
 }
 
+// One rifle builder for every long gun: [rw, rh, rl, barrelL, guardL, magL, magRx, magZ, stockL, optic, guardMat]
+// optic: 0 none, 1 red-dot, 2 scope.
+export const RIFLE_SPEC = {
+  smg: [0.08, 0.09, 0.34, 0.18, 0.2, 0.16, 0, -0.02, 0.16, 1, TAN],
+  rifle: [0.09, 0.1, 0.4, 0.24, 0.3, 0.14, 0.15, 0.02, 0.2, 1, TAN],
+  sniper: [0.07, 0.09, 0.5, 0.5, 0, 0.1, 0, 0, 0.24, 2, TAN],
+  shotty: [0.1, 0.11, 0.42, 0.34, 0, 0.09, 0, -0.32, 0.2, 0, TAN],
+};
+
+export function buildRifle(spec) {
+  const [rw, rh, rl, bl, gl, ml, mrx, mz, sl, optic, gm] = spec;
+  const g = new THREE.Group();
+  const add = (w, h, d, x, y, z, m, rx = 0) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+    mesh.position.set(x, y, z);
+    if (rx) mesh.rotation.x = rx;
+    g.add(mesh);
+    return mesh;
+  };
+  add(rw, rh, rl, 0, 0, 0, STEEL); // receiver
+  if (gl > 0) {
+    add(rw - 0.01, rh - 0.02, gl, 0, 0.01, -(rl / 2 + gl / 2 - 0.02), gm); // railed handguard
+    add(0.035, 0.012, gl, 0, rh / 2 + 0.008, -(rl / 2 + gl / 2 - 0.02), GREY); // top rail
+  }
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, bl, 8), GREY);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0.01, -(rl / 2 + gl + bl / 2 - 0.02));
+  g.add(barrel);
+  add(0.05, 0.05, 0.08, 0, 0.01, -(rl / 2 + gl + bl - 0.02), GREY); // muzzle brake
+  const mag = add(0.05, ml, 0.07, 0, -rh / 2 - ml / 2 + 0.02, mz, POLY, mrx); // curved magazine
+  add(0.05, 0.12, 0.07, 0, -0.1, 0.06, POLY, 0.25); // grip
+  add(0.07, 0.09, sl, 0, -0.01, rl / 2 + sl / 2 - 0.04, POLY); // stock
+  if (optic === 1) add(0.05, 0.05, 0.14, 0, rh / 2 + 0.025, -0.12, EMBER); // red-dot optic
+  else if (optic === 2) {
+    const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 10), EMBER);
+    scope.rotation.x = Math.PI / 2;
+    scope.position.set(0, rh / 2 + 0.04, -0.12);
+    g.add(scope);
+  }
+  mag.userData.baseY = mag.position.y;
+  mag.userData.baseRX = mag.rotation.x;
+  g.userData.mag = mag;
+  return g;
+}
+
 function hands(model, gx, gy, gz, sx, sy, sz) {
   const grip = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.11, 0.09), GLOVE);
   grip.position.set(gx, gy, gz);
@@ -86,52 +132,11 @@ function buildModel(id) {
     mag = part(0.05, 0.02, 0.07, 0, -0.16, 0.04, EMBER);
     model.add(mag);
     hands(model, 0, -0.09, 0.03, 0, -0.055, -0.14);
-  } else if (id === 'smg') {
-    model.add(
-      part(0.08, 0.09, 0.34, 0, 0, -0.06, STEEL), part(0.035, 0.035, 0.18, 0, 0.01, -0.32, GREY),
-      part(0.07, 0.07, 0.2, 0, 0.01, -0.28, POLY), part(0.06, 0.05, 0.14, 0, -0.01, -0.2, TAN),
-      part(0.06, 0.07, 0.16, 0, -0.01, 0.2, POLY), part(0.05, 0.12, 0.07, 0, -0.09, 0.06, POLY, 0.25),
-      part(0.04, 0.04, 0.1, 0, 0.07, -0.1, EMBER), part(0.05, 0.1, 0.05, 0, -0.08, -0.2, POLY),
-      part(0.045, 0.045, 0.06, 0, 0.01, -0.42, GREY), part(0.07, 0.015, 0.3, 0, 0.055, -0.08, GREY),
-    );
-    mag = part(0.05, 0.16, 0.06, 0, -0.12, 0, POLY);
-    model.add(mag);
-    hands(model, 0, -0.09, 0.06, 0, -0.07, -0.2);
-  } else if (id === 'rifle') {
-    model.add(
-      part(0.09, 0.1, 0.4, 0, 0, -0.04, STEEL), part(0.04, 0.04, 0.24, 0, 0.02, -0.36, GREY),
-      part(0.08, 0.08, 0.3, 0, 0.01, -0.3, TAN), part(0.07, 0.09, 0.2, 0, -0.01, 0.24, POLY),
-      part(0.05, 0.12, 0.07, 0, -0.1, 0.06, POLY, 0.25), part(0.05, 0.05, 0.14, 0, 0.075, -0.12, EMBER),
-      part(0.012, 0.04, 0.012, 0, 0.06, -0.44, EMBER), part(0.05, 0.05, 0.08, 0, 0.02, -0.5, GREY),
-      part(0.08, 0.015, 0.34, 0, 0.06, -0.06, GREY), part(0.05, 0.09, 0.05, 0, -0.07, -0.28, POLY),
-      part(0.1, 0.02, 0.03, 0, 0.03, 0.14, GREY),
-    );
-    mag = part(0.06, 0.14, 0.08, 0, -0.11, 0.02, POLY, 0.15);
-    model.add(mag);
-    hands(model, 0, -0.1, 0.06, 0, -0.06, -0.28);
-  } else if (id === 'sniper') {
-    model.add(
-      part(0.07, 0.09, 0.5, 0, 0, -0.1, STEEL), part(0.035, 0.035, 0.5, 0, 0.015, -0.55, GREY),
-      part(0.05, 0.05, 0.2, 0, 0.09, -0.12, EMBER), part(0.04, 0.03, 0.12, 0, 0.055, -0.12, GREY),
-      part(0.055, 0.055, 0.02, 0, 0.09, -0.23, POLY), part(0.02, 0.02, 0.1, 0.06, 0.02, -0.02, GREY),
-      part(0.06, 0.08, 0.24, 0, -0.01, 0.26, TAN), part(0.06, 0.03, 0.16, 0, 0.06, 0.2, POLY),
-      part(0.05, 0.11, 0.07, 0, -0.09, 0.06, POLY, 0.25), part(0.04, 0.04, 0.07, 0, 0.015, -0.82, GREY),
-      part(0.065, 0.1, 0.03, 0, -0.01, 0.39, GLOVE),
-    );
-    mag = part(0.05, 0.1, 0.07, 0, -0.1, 0, POLY);
-    model.add(mag);
-    hands(model, 0, -0.09, 0.06, 0, -0.05, -0.35);
-  } else if (id === 'shotty') {
-    model.add(
-      part(0.1, 0.11, 0.42, 0, 0, -0.06, STEEL), part(0.045, 0.045, 0.34, 0, 0.02, -0.4, GREY),
-      part(0.04, 0.04, 0.3, 0, -0.05, -0.38, GREY), part(0.05, 0.05, 0.03, 0, -0.05, -0.54, EMBER),
-      part(0.08, 0.1, 0.2, 0, -0.01, 0.24, POLY), part(0.05, 0.12, 0.07, 0, -0.1, 0.06, POLY, 0.25),
-      part(0.012, 0.03, 0.012, 0, 0.06, -0.52, EMBER), part(0.09, 0.03, 0.2, 0, 0.055, -0.36, GREY),
-      part(0.1, 0.02, 0.1, 0, 0.06, -0.05, TAN),
-    );
-    mag = part(0.08, 0.09, 0.16, 0, -0.02, -0.32, TAN);
-    model.add(mag);
-    hands(model, 0, -0.1, 0.06, 0, -0.06, -0.32);
+  } else if (id === 'smg' || id === 'rifle' || id === 'sniper' || id === 'shotty') {
+    const r = buildRifle(RIFLE_SPEC[id]);
+    model.add(r);
+    mag = r.userData.mag;
+    hands(model, 0, -0.09, 0.06, 0, -0.06, -(0.15 + RIFLE_SPEC[id][4] * 0.6));
   } else {
     const mat = id === 'he' ? EMBER : id === 'smoke' ? GREY : WHITE;
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 12), mat);

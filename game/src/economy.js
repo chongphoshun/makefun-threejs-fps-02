@@ -1,4 +1,4 @@
-// Economy: the shop. One job: turn money into kit. It owns the price list, the
+// Economy: money into kit (ARMOURY).
 import { WEAPONS, WEAPON_ORDER, ARMOR_PRICE, HELMET_PRICE, KIT_PRICE } from './weapons.js';
 
 export function createEconomy({ game, weapons, hud, audio }) {

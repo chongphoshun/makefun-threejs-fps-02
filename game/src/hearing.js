@@ -1,4 +1,4 @@
-// Sound: the noise registry and bot hearing. Every gunshot and footstep lands here
+// Sound: noise registry, bot hearing.
 export function createHearing() {
   const noises = [];
 

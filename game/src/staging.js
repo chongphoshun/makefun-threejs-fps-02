@@ -1,9 +1,10 @@
-// Staging: deterministic captures + headless self-test.
+// Staging: deterministic captures + self-test.
 import * as THREE from 'three';
-import { WEAPONS, WEAPON_ORDER } from './weapons.js';
+import { WEAPONS } from './weapons.js';
 import { FIXED_STEP } from './loop.js';
 
 export function createStaging({ scene, camera, renderer, hud, game, rounds, weapons, bots, effects, shooter, input, player, playerBody, step, syncCamera, aimAt, setFrozen, getSimTime }) {
+  let aerial = false;
   function settle(steps) {
     for (let i = 0; i < steps; i += 1) step(FIXED_STEP);
   }
@@ -13,6 +14,10 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
     function paint() {
       requestAnimationFrame(paint);
       syncCamera();
+      if (aerial) {
+        camera.position.set(0, 32, 22);
+        camera.lookAt(0, 0, -4);
+      }
       renderer.render(scene, camera);
       painted += 1;
       if (painted === 2) {
@@ -58,16 +63,16 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       playerBody.position.set(8, 0, -10);
       settle(30);
       const enemies = bots.list.filter((b) => b.team === 'ash');
-      const spots = [[13, -13], [12, -15], [10, -13]];
+      const spots = [[12, -12], [11, -14], [9.5, -12.5]];
       for (let i = 0; i < 3; i += 1) place(enemies[i], spots[i][0], spots[i][1], Math.PI);
       settle(2);
-      aimAt(new THREE.Vector3(17, 1.5, -13));
+      aimAt(new THREE.Vector3(13, 1.4, -13));
       shooter.shoot(0);
       step(FIXED_STEP);
       effects.smokeCloud(new THREE.Vector3(19, 1, -9));
-      effects.burst(new THREE.Vector3(13, 1.5, -13), new THREE.Vector3(-1, 0, 0), 12);
-      effects.decal(new THREE.Vector3(13, 1.5, -12.5), new THREE.Vector3(-1, 0, 0));
-      effects.tracer(new THREE.Vector3(13, 1.35, -13), new THREE.Vector3(8, 1.2, -9), 0x7fb8ff);
+      effects.burst(new THREE.Vector3(11.5, 1.5, -13), new THREE.Vector3(-1, 0, 0), 12);
+      effects.decal(new THREE.Vector3(11.5, 1.5, -12.5), new THREE.Vector3(-1, 0, 0));
+      effects.tracer(new THREE.Vector3(11.5, 1.35, -13), new THREE.Vector3(8, 1.2, -9), 0x7fb8ff);
       player.health = 74;
       player.alive = true;
       hud.hideOverlay();
@@ -76,36 +81,45 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       hud.killfeed('You', 'Wren', false, 'ember', 'Rifle', true);
       hud.radio('Rook', 'Contact — Clay Pits, three of them', 'ember', true);
       hud.radio('Vex', 'Holding mid, need backup', 'ember', true);
-    } else if (name === 'buy') {
-      game.state.money = 6400;
-      weapons.buy('rifle');
-      weapons.buyArmor();
+    } else if (name === 'aerial') {
+      // Wide aerial of Cinder Yard at sunset: smokestacks, Kiln Hall, Clay Pits, both site letters, soldiers in the yard. No HUD.
+      game.startMatch();
+      rounds.startRoundSetup();
       score(4, 4, 9, 2400);
-      playerBody.position.set(0, 0, 16.5);
+      playerBody.position.set(0, 0, 15.5);
       settle(20);
-      aimAt(new THREE.Vector3(5, 3.5, -18));
-      hud.showBuy(2400);
-      for (const item of [...WEAPON_ORDER, 'armor', 'helmet', 'kit']) {
-        const owned = item === 'armor' ? weapons.state.armor > 0 : item === 'helmet' ? weapons.state.helmet : item === 'kit' ? weapons.state.kit : weapons.state.owned.has(item);
-        hud.buyAfford(item, 2400, owned);
-      }
+      const spots = [[-4, 6, 0.5], [3, 2, -0.5], [7, 8, 2.5], [-8, -2, 1.2], [8, -4, -2.2]];
+      for (let i = 0; i < 5; i += 1) place(bots.list[i], spots[i][0], spots[i][1], spots[i][2]);
+      settle(2);
+      aerial = true;
+      document.getElementById('hud').hidden = true;
+      for (const c of camera.children) c.visible = false;
+      scene.fog = null;
+      renderer.shadowMap.enabled = false; // lift the yard out of the walls' shadow
+      renderer.toneMappingExposure = 1.25;
     } else if (name === 'plant') {
       game.endFreeze();
-      game.state.timer = 41;
+      game.plant('A');
+      effects.plantBomb(-16.5, -12.5);
       score(6, 4, 11, 3800);
       rifle(3800);
-      const enemy = bots.list.find((b) => b.team === 'ash');
-      place(enemy, -14.5, -10, Math.PI * 0.5);
-      playerBody.position.set(-2.5, 0, -12);
-      settle(10);
-      aimAt(new THREE.Vector3(-15.5, 0.6, -12.5));
-      effects.smokeCloud(new THREE.Vector3(-12, 1, -6));
-      effects.plantBomb(-16.5, -12.5);
-      settle(6); // blink the charge lamp on for the capture
-      weapons.showCharge(true);
-      hud.setPlant(2 / 3);
-      hud.prompt('Hold <b>E</b> to plant the charge');
-      hud.radio('Iris', 'Planting at Kiln Hall — cover me', 'ember', true);
+      weapons.buyKit();
+      const defuser = bots.list.find((b) => b.team === 'ash');
+      place(defuser, -17.8, -12.8, -1.8);
+      defuser.state = 'defuse';
+      defuser.defuseT = 2.9;
+      playerBody.position.set(-16.5, 0, -8.2);
+      settle(6);
+      aimAt(new THREE.Vector3(-18, 1.2, -12.5));
+      effects.smokeCloud(new THREE.Vector3(-10, 1, -15));
+      for (const c of camera.children) c.visible = false; // no viewmodel: the floor charge must read
+      defuser.parts.group.rotation.x = 0.35; // kneel-lean over the charge
+      defuser.parts.armL.rotation.x = -1.3;
+      defuser.parts.armR.rotation.x = -1.3;
+      hud.setBomb('DEFUSING (KIT) 58%', 0.58);
+      hud.setPlant(0.58);
+      hud.radio('Onyx', 'Defusing at Kiln Hall — cover me', 'ash', true);
+      hud.radio('Iris', 'They are on the charge — retake A', 'ember', true);
     } else if (name === 'scoreboard') {
       renderer.toneMappingExposure = 0.8;
       score(7, 5, 12, 6800);

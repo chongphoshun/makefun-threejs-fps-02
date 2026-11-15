@@ -1,4 +1,4 @@
-// A capsule mover shared by the player and every bot: acceleration, friction, gravity,
+// Mover: capsule physics for player + bots.
 import * as THREE from 'three';
 
 const STAND_HEIGHT = 1.72;

@@ -1,4 +1,4 @@
-// Keyboard and mouse, and the pointer lock that turns the mouse into look. Plain browser
+// Input: keyboard, mouse, pointer lock.
 export function createInput(canvas, onLockChange) {
   const keys = new Set();
   const pressed = new Set();

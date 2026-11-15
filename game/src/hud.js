@@ -1,4 +1,4 @@
-// The DOM HUD: crosshair, hit marker, health, ammo, money, timer, score, alive pips,
+// HUD: crosshair, health, ammo, shop, scoreboard.
 import { WEAPONS, ARMOR_PRICE, HELMET_PRICE, KIT_PRICE } from './weapons.js';
 import { PALETTE } from './palette.js';
 

@@ -1,4 +1,4 @@
-// EMBERLINE — the look plan, in one place. Dusk in a freight yard: warm amber sun against
+// Palette: the look plan, in one place.
 export const PALETTE = {
   canvas: '#171009', // sky / fog
   surface: '#2e2113', // ground, dark panels

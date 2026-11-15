@@ -1,4 +1,4 @@
-// The match: rounds, the bomb, and the money. One object holds every number the match
+// Match: rounds, bomb, money.
 export const WIN_SCORE = 13;
 export const TOTAL_ROUNDS = 24;
 export const ROUND_TIME = 100;

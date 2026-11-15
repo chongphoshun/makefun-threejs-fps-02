@@ -1,8 +1,9 @@
-// The bots: four Ember teammates and five Ash defenders. Bodies on the shared
+// Bots: 5v5 AI, buildSoldier, nameplates.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { createMover } from './move.js';
 import { SPAWNS } from './world.js';
+import { buildRifle, RIFLE_SPEC } from './weapons.js';
 
 const EMBER_NAMES = ['Vex', 'Rook', 'Iris', 'Moss'];
 const ASH_NAMES = ['Kestrel', 'Onyx', 'Sable', 'Wren', 'Flint'];
@@ -38,7 +39,7 @@ export function createBots(scene, world, hooks) {
     ash: new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.ash), roughness: 0.6, metalness: 0.05 }),
   };
   const darkMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.surface), roughness: 0.85 });
-  const skinMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.ink), roughness: 0.6 });
+  const gearMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x1a1512), roughness: 0.9 });
 
   const bots = [];
   const hitMeshes = [];
@@ -68,39 +69,55 @@ export function createBots(scene, world, hooks) {
     return sp;
   }
 
-  function buildModel(bot) {
+  function buildSoldier(bot) {
     const group = new THREE.Group();
     const mat = teamMat[bot.team];
     const torsoMat = mat.clone();
-    const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
-    function part(geo, m, x, y, z, ud) {
+    const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+    const S = (r) => new THREE.SphereGeometry(r, 12, 8);
+    const C = (r, l) => new THREE.CapsuleGeometry(r, l, 4, 8);
+    function P(geo, m, x, y, z, ud, rx = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
       const p = new THREE.Mesh(geo, m);
       p.position.set(x, y, z);
+      if (rx) p.rotation.x = rx;
+      if (rz) p.rotation.z = rz;
+      if (sx !== 1 || sy !== 1 || sz !== 1) p.scale.set(sx, sy, sz);
       if (ud) p.userData = { bot, part: ud };
       group.add(p);
       return p;
     }
-    const legL = part(box(0.16, 0.52, 0.16), darkMat, -0.11, 0.26, 0, 'leg');
-    const legR = part(box(0.16, 0.52, 0.16), darkMat, 0.11, 0.26, 0, 'leg');
+    const legL = P(C(0.09, 0.34), darkMat, -0.11, 0.28, 0, 'leg');
+    const legR = P(C(0.09, 0.34), darkMat, 0.11, 0.28, 0, 'leg');
     for (const leg of [legL, legR]) {
-      const boot = new THREE.Mesh(box(0.17, 0.12, 0.28), darkMat);
+      const boot = new THREE.Mesh(B(0.17, 0.12, 0.28), gearMat);
       boot.position.set(0, -0.22, 0.04);
       leg.add(boot);
+      const knee = new THREE.Mesh(B(0.17, 0.14, 0.05), gearMat);
+      knee.position.set(0, 0.16, 0.09);
+      leg.add(knee);
     }
-    const torso = part(box(0.52, 0.62, 0.3), torsoMat, 0, 1.06, 0, 'torso');
-    part(box(0.56, 0.42, 0.34), mat, 0, 1.1, 0); // vest
-    part(box(0.4, 0.3, 0.06), darkMat, 0, 1.08, -0.19); // rig
-    part(box(0.4, 0.5, 0.18), darkMat, 0, 1.1, 0.26); // pack
-    part(box(0.42, 0.12, 0.2), mat, 0, 1.4, 0.26); // bedroll
-    const head = part(new THREE.SphereGeometry(0.16, 14, 10), skinMat, 0, 1.56, 0, 'head');
-    const helmet = part(new THREE.SphereGeometry(0.17, 14, 10), mat, 0, 1.66, 0);
-    helmet.scale.set(1, 0.65, 1.1);
-    part(box(0.3, 0.07, 0.04), darkMat, 0, 1.6, -0.15); // visor
-    const armL = part(box(0.13, 0.5, 0.13), darkMat, -0.33, 1.12, -0.08);
-    const armR = part(box(0.13, 0.5, 0.13), darkMat, 0.33, 1.12, -0.08);
-    armL.rotation.x = -0.5;
-    armR.rotation.x = -0.5;
-    const gun = part(box(0.06, 0.09, 0.55), darkMat, 0.14, 1.28, -0.3);
+    const torso = P(B(0.52, 0.62, 0.3), torsoMat, 0, 1.06, 0, 'torso');
+    P(B(0.56, 0.42, 0.34), mat, 0, 1.1, 0); // chest plate
+    P(B(0.54, 0.08, 0.32), gearMat, 0, 0.78, 0); // belt
+    for (const px of [-0.14, 0, 0.14]) P(B(0.1, 0.13, 0.05), gearMat, px, 1.08, -0.2); // rig pouches
+    P(B(0.4, 0.5, 0.18), darkMat, 0, 1.1, 0.26); // backpack
+    P(B(0.42, 0.12, 0.2), mat, 0, 1.4, 0.26); // bedroll
+    P(B(0.18, 0.06, 0.2), mat, -0.3, 1.38, 0); // shoulder pad
+    P(B(0.18, 0.06, 0.2), mat, 0.3, 1.38, 0); // shoulder pad
+    const head = P(S(0.16), gearMat, 0, 1.56, 0, 'head');
+    P(S(0.17), mat, 0, 1.66, 0, null, 0, 0, 1, 0.65, 1.1); // rounded helmet
+    P(B(0.32, 0.08, 0.05), gearMat, 0, 1.62, -0.14); // goggles
+    P(B(0.34, 0.05, 0.02), gearMat, 0, 1.64, 0.15); // goggle strap
+    const armL = P(C(0.065, 0.36), darkMat, -0.33, 1.12, -0.08, null, -0.5);
+    const armR = P(C(0.065, 0.36), darkMat, 0.33, 1.12, -0.08, null, -0.5);
+    const gun = buildRifle(RIFLE_SPEC[bot.weapon === 'smg' ? 'smg' : 'rifle']);
+    gun.position.set(0.14, 1.28, -0.32);
+    for (const [gx, gy, gz] of [[0, -0.09, 0.06], [0, -0.06, -0.3]]) {
+      const glove = new THREE.Mesh(B(0.08, 0.09, 0.1), gearMat);
+      glove.position.set(gx, gy, gz);
+      gun.add(glove);
+    }
+    group.add(gun);
     const plate = nameplate(bot.name, bot.team === 'ember' ? PALETTE.accent : PALETTE.ash);
     plate.position.y = 1.98;
     group.add(plate);
@@ -126,7 +143,7 @@ export function createBots(scene, world, hooks) {
     };
     const spawn = SPAWNS[team][index % SPAWNS[team].length];
     bot.mover = createMover(world.colliders, { x: spawn.x, z: spawn.z, yaw: spawn.yaw, walkSpeed: bot.speed });
-    bot.parts = buildModel(bot);
+    bot.parts = buildSoldier(bot);
     scene.add(bot.parts.group);
     bots.push(bot);
     return bot;

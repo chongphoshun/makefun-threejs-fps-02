@@ -1,4 +1,4 @@
-// The bomb: the player's plant and defuse channels. Hold E inside a site to plant
+// Bomb: plant/defuse channels (E in a site).
 import { PLANT_TIME, DEFUSE_TIME } from './game.js';
 import { SITES } from './world.js';
 
