@@ -3,7 +3,7 @@
 // is a collider and a surface a bullet stops on; the waypoint graph is what the bots walk.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
-import { TEXTURES, letterDecal } from './textures.js';
+import { TEXTURES, letterDecal, skyTexture, signTexture, pavingTexture, flagTexture, glowTexture } from './textures.js';
 
 // [width, height, depth, x, y, z, material]
 const BOXES = [
@@ -198,9 +198,130 @@ export function createWorld(scene) {
     group.add(barrel);
   }
 
+  // ---- Sky, courtyard, dressing: visual only, no colliders, no sightline changes ----
+  // Sunset sky dome: a gradient canvas on a big sphere, fog off so it never greys out.
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(120, 24, 16),
+    new THREE.MeshBasicMaterial({ map: skyTexture(), side: THREE.BackSide, fog: false }),
+  );
+  group.add(sky);
+  const glowTex = glowTexture();
+  function glowSprite(x, y, z, color, scale, opacity) {
+    const mat = new THREE.SpriteMaterial({
+      map: glowTex, color: new THREE.Color(color), transparent: true, opacity,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+    });
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.set(x, y, z);
+    sprite.scale.setScalar(scale);
+    group.add(sprite);
+    return sprite;
+  }
+  // Low sun glow on the horizon, in the direction the directional light comes from.
+  glowSprite(54, 62, 47, '#ffc46b', 34, 0.85);
+  // Warm glow over each site lamp and the mid choke lamp (fake bloom on the lights).
+  glowSprite(-16.5, 4.4, -12.5, PALETTE.accent, 7, 0.4);
+  glowSprite(16.5, 4.4, -12.5, PALETTE.zoneB, 7, 0.35);
+  glowSprite(0, 4.5, 0, '#ff9a3c', 6, 0.35);
+
+  // Courtyard plaza between the corridors: a paving ring on the floor, a flag pole
+  // with the team flag, and benches tucked against the lane walls.
+  const paving = new THREE.Mesh(
+    new THREE.PlaneGeometry(9, 9),
+    new THREE.MeshBasicMaterial({ map: pavingTexture(), transparent: true, opacity: 0.85, depthWrite: false }),
+  );
+  paving.rotation.x = -Math.PI / 2;
+  paving.position.set(0, 0.015, 10);
+  group.add(paving);
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.05, 0.06, 5, 8),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color('#33302c'), roughness: 0.5, metalness: 0.6 }),
+  );
+  pole.position.set(-6, 2.5, 10);
+  pole.castShadow = true;
+  group.add(pole);
+  const flag = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.7, 1.06),
+    new THREE.MeshStandardMaterial({ map: flagTexture(), side: THREE.DoubleSide, roughness: 0.8 }),
+  );
+  flag.position.set(-5.15, 4.4, 10);
+  flag.rotation.y = Math.PI / 2;
+  group.add(flag);
+  for (const bx of [-12.2, 12.2]) {
+    const bench = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.45, 1.8),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.crate), roughness: 0.85 }),
+    );
+    bench.position.set(bx, 0.22, 8);
+    bench.castShadow = true;
+    bench.receiveShadow = true;
+    group.add(bench);
+  }
+
+  // Lit windows on the outer walls: warm amber panes that break up the long walls.
+  const glassMat = new THREE.MeshStandardMaterial({
+    map: TEXTURES.glass, emissive: new THREE.Color('#ffb36b'),
+    emissiveMap: TEXTURES.glass, emissiveIntensity: 0.9, roughness: 0.4,
+  });
+  function window(x, y, z, rotY) {
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.6), glassMat);
+    w.position.set(x, y, z);
+    w.rotation.y = rotY;
+    group.add(w);
+  }
+  for (const z of [-8, 0, 8]) { window(-21.94, 3.2, z, Math.PI / 2); window(21.94, 3.2, z, -Math.PI / 2); }
+  for (const x of [-8, 0, 8]) { window(x, 3.2, -17.94, 0); window(x, 3.2, 17.94, Math.PI); }
+
+  // Doorframe around the mid choke doorway, ceiling beams across the yard, and
+  // pipes running along the outer walls. All visual only, above or beside play.
+  const steelMat = new THREE.MeshStandardMaterial({ map: TEXTURES.steel, roughness: 0.5, metalness: 0.55 });
+  for (const px of [-0.72, 0.72]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.8, 0.3), steelMat);
+    post.position.set(px, 1.9, 0);
+    post.castShadow = true;
+    group.add(post);
+  }
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.3, 0.3), steelMat);
+  lintel.position.set(0, 3.75, 0);
+  group.add(lintel);
+  for (const bz of [-8, 0, 8]) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(44, 0.35, 0.5), steelMat);
+    beam.position.set(0, 4.4, bz);
+    group.add(beam);
+  }
+  for (const bx of [-10, 10]) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 36), steelMat);
+    beam.position.set(bx, 4.4, 0);
+    group.add(beam);
+  }
+  function pipe(x, z, len, horizontal) {
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, len, 10), steelMat);
+    if (horizontal) p.rotation.x = Math.PI / 2;
+    p.position.set(x, 3.0, z);
+    group.add(p);
+  }
+  pipe(-21.9, 0, 36, true);
+  pipe(21.9, 0, 36, true);
+
+  // Signage: site names over the sites, directions in the lanes, yard name over spawn.
+  function sign(text, sub, color, w, x, y, z, rotY) {
+    const s = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, w / 4),
+      new THREE.MeshBasicMaterial({ map: signTexture(text, sub, color) }),
+    );
+    s.position.set(x, y, z);
+    s.rotation.y = rotY;
+    group.add(s);
+  }
+  sign('SITE A', 'WAREHOUSE', PALETTE.accent, 4, -21.94, 4.2, -12.5, Math.PI / 2);
+  sign('SITE B', 'DEPOT', PALETTE.zoneB, 4, 21.94, 4.2, -12.5, -Math.PI / 2);
+  sign('WAREHOUSE', 'A →', PALETTE.accent, 3.2, -12.94, 3.9, 4, Math.PI / 2);
+  sign('DEPOT', '← B', PALETTE.zoneB, 3.2, 12.94, 3.9, 4, -Math.PI / 2);
+  sign('CINDER YARD', '', '#f2e8d5', 4.5, 0, 4.2, 17.94, Math.PI);
+
   // Light: a low amber sun, a cool sky fill, and a floodlight over each site.
-  const sky = new THREE.HemisphereLight(new THREE.Color('#ffe2b8'), new THREE.Color('#2c1e11'), 1.62);
-  scene.add(sky);
+  const skyLight = new THREE.HemisphereLight(new THREE.Color('#ffe2b8'), new THREE.Color('#2c1e11'), 1.62);
+  scene.add(skyLight);
   const sun = new THREE.DirectionalLight(new THREE.Color('#ffb36b'), 4.5);
   sun.position.set(14, 18, 12);
   sun.target.position.set(0, 0, -4);
