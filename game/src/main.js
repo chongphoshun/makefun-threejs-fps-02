@@ -14,6 +14,7 @@ import { createEffects } from './effects.js';
 import { createAudio } from './audio.js';
 import { createHud } from './hud.js';
 import { createGame, WIN_SCORE } from './game.js';
+import { createEconomy } from './economy.js';
 
 const FIXED_STEP = 1 / 60;
 const params = new URLSearchParams(window.location.search);
@@ -64,6 +65,7 @@ const hud = createHud(world);
 const game = createGame();
 const input = createInput(renderer.domElement, onLockChange);
 const weapons = createWeapons(camera);
+const economy = createEconomy({ game, weapons, hud, audio });
 const playerMover = createMover(world.colliders, { x: 0, z: 15.5, yaw: 0 });
 const raycaster = new THREE.Raycaster();
 raycaster.far = 90;
@@ -134,8 +136,7 @@ const hooks = {
     roundKills.push({ x: victimPos.x, z: victimPos.z, team: attacker.team, killer: killerName });
     if (roundKills.length > 24) roundKills.shift();
     if (attacker.isPlayer) {
-      game.addKillMoney();
-      hud.setMoney(game.state.money);
+      economy.killReward();
       stats.kills += 1;
     }
     checkElimination();
@@ -429,19 +430,6 @@ function stepGrenades(dt) {
   }
 }
 
-function tryBuy(id) {
-  if (game.state.phase !== 'freeze') return;
-  const price = id === 'armor' ? ARMOR_PRICE : id === 'helmet' ? HELMET_PRICE : WEAPONS[id].price;
-  if (!game.spend(price)) { audio.dry(); return; }
-  if (id === 'armor') weapons.buyArmor();
-  else if (id === 'helmet') weapons.buyHelmet();
-  else weapons.buy(id);
-  audio.click();
-  hud.setMoney(game.state.money);
-  hud.setAmmo(weapons.ammo[weapons.state.current].mag, weapons.ammo[weapons.state.current].reserve, WEAPONS[weapons.state.current].name.toUpperCase());
-  for (const item of [...WEAPON_ORDER, 'armor', 'helmet']) hud.buyAfford(item, game.state.money);
-}
-
 function syncCamera() {
   camera.position.set(playerBody.position.x, playerBody.position.y + playerBody.eye, playerBody.position.z);
   camera.rotation.set(playerBody.pitch, playerBody.yaw, 0, 'YXZ');
@@ -620,15 +608,15 @@ function frame(now) {
     if (input.takePressed('KeyQ')) weapons.switchTo(lastWeaponId);
     WEAPON_ORDER.forEach((id, i) => {
       if (input.takePressed(`Digit${i + 1}`)) {
-        if (game.state.phase === 'freeze' && buyOpen) tryBuy(id);
+        if (game.state.phase === 'freeze' && buyOpen) economy.tryBuy(id);
         else if (id !== weapons.state.current) {
           lastWeaponId = weapons.state.current;
           weapons.switchTo(id);
         }
       }
     });
-    if (input.takePressed('Digit9') && game.state.phase === 'freeze' && buyOpen) tryBuy('armor');
-    if (input.takePressed('Digit0') && game.state.phase === 'freeze' && buyOpen) tryBuy('helmet');
+    if (input.takePressed('Digit9') && game.state.phase === 'freeze' && buyOpen) economy.tryBuy('armor');
+    if (input.takePressed('Digit0') && game.state.phase === 'freeze' && buyOpen) economy.tryBuy('helmet');
     accumulator += dt;
     let steps = 0;
     while (accumulator >= FIXED_STEP && steps < 5) {
@@ -666,7 +654,7 @@ function onLockChange(locked) {
   }
 }
 
-hud.buildBuyMenu((id) => tryBuy(id));
+hud.buildBuyMenu((id) => economy.tryBuy(id));
 hud.onPlay(() => {
   if (shot) return;
   audio.unlock();
