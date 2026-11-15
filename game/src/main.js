@@ -15,6 +15,7 @@ import { createAudio } from './audio.js';
 import { createHud } from './hud.js';
 import { createGame, WIN_SCORE } from './game.js';
 import { createEconomy } from './economy.js';
+import { createBomb } from './bomb.js';
 
 const FIXED_STEP = 1 / 60;
 const params = new URLSearchParams(window.location.search);
@@ -66,6 +67,16 @@ const game = createGame();
 const input = createInput(renderer.domElement, onLockChange);
 const weapons = createWeapons(camera);
 const economy = createEconomy({ game, weapons, hud, audio });
+const bomb = createBomb({
+  game, world, hud, audio, effects,
+  getPlayer: () => player,
+  onPlanted(site) {
+    hud.banner('CHARGE PLANTED', `Defend ${SITES[site].name} — 40 seconds`, 3000);
+    hud.radio('You', `Charge planted at ${site} — hold the site`, 'ember');
+    audio.plant();
+  },
+  onDefused() { endRound('ash', 'You defused the charge'); },
+});
 const playerMover = createMover(world.colliders, { x: 0, z: 15.5, yaw: 0 });
 const raycaster = new THREE.Raycaster();
 raycaster.far = 90;
@@ -75,8 +86,6 @@ let frozen = false;
 let started = false;
 let accumulator = 0;
 let lastTime = performance.now();
-let plantProgress = 0;
-let defuseProgress = 0;
 let lastWeaponId = 'pistol';
 let buyOpen = false;
 let noises = [];
@@ -218,8 +227,7 @@ function startRoundSetup() {
   else weapons.refill();
   spawnPlayer();
   bots.reset(game.state.round);
-  plantProgress = 0;
-  defuseProgress = 0;
+  bomb.reset();
   grenades.length = 0;
   roundKills.length = 0;
   effects.clearBomb();
@@ -519,44 +527,8 @@ function step(dt) {
     }
   }
 
-  // Plant / defuse channels: hold E inside the right zone.
-  const inA = world.inSite(playerBody.position.x, playerBody.position.z, 'A');
-  const inB = world.inSite(playerBody.position.x, playerBody.position.z, 'B');
-  const siteHere = inA ? 'A' : inB ? 'B' : null;
-  const planted = game.state.planted;
-  if (player.alive && phase === 'live') {
-    if (!planted && siteHere && keys.has('KeyE')) {
-      plantProgress += dt;
-      hud.setPlant(plantProgress / 3);
-      if (plantProgress >= 3) {
-        game.plant(siteHere);
-        plantProgress = 0;
-        effects.plantBomb(SITES[siteHere].center.x, SITES[siteHere].center.z);
-        hud.setPlant(null);
-        hud.banner('CHARGE PLANTED', `Defend ${SITES[siteHere].name} — 40 seconds`, 3000);
-        hud.radio('You', `Charge planted at ${siteHere} — hold the site`, 'ember');
-        audio.plant();
-      }
-    } else if (planted && world.inSite(playerBody.position.x, playerBody.position.z, planted.site) && keys.has('KeyE')) {
-      defuseProgress += dt;
-      hud.setPlant(defuseProgress / 5);
-      if (defuseProgress >= 5) {
-        defuseProgress = 0;
-        hud.setPlant(null);
-        endRound('ash', 'You defused the charge');
-      }
-    } else {
-      plantProgress = 0;
-      defuseProgress = 0;
-      hud.setPlant(null);
-    }
-    if (!planted && siteHere) hud.prompt('Hold <b>E</b> to plant the charge');
-    else if (planted && world.inSite(playerBody.position.x, playerBody.position.z, planted.site)) hud.prompt('Hold <b>E</b> to defuse');
-    else hud.prompt(null);
-  } else {
-    hud.setPlant(null);
-    hud.prompt(null);
-  }
+  // Plant / defuse channels: hold E inside the right zone (bomb.js).
+  bomb.step(dt, keys, phase);
 
   // Per-site colour grade: warm on A, cool on B, warm spawn, neutral in mid.
   const zone = inA ? 'A' : inB ? 'B' : playerBody.position.z > 12 ? 'spawn' : 'mid';
