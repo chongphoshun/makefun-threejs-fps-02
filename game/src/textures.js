@@ -74,6 +74,138 @@ export function letterDecal(letter, color) {
   });
 }
 
+// Sunset sky: dusk purple up top, ember band at the horizon, a low sun and a few
+// early stars. Painted once, wrapped on a dome (BackSide, no fog).
+export function skyTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#160b2e');
+  g.addColorStop(0.35, '#3d1c33');
+  g.addColorStop(0.62, '#8a3418');
+  g.addColorStop(0.8, '#ff7a1a');
+  g.addColorStop(1, '#ffb36b');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < 40; i += 1) {
+    ctx.globalAlpha = 0.3 + Math.random() * 0.6;
+    ctx.fillStyle = '#f2e8d5';
+    ctx.fillRect(Math.random() * 512, Math.random() * 70, 1.5, 1.5);
+  }
+  ctx.globalAlpha = 1;
+  const sg = ctx.createRadialGradient(150, 190, 4, 150, 190, 70);
+  sg.addColorStop(0, 'rgba(255,244,210,1)');
+  sg.addColorStop(0.25, 'rgba(255,190,90,0.85)');
+  sg.addColorStop(1, 'rgba(255,140,40,0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath(); ctx.arc(150, 190, 70, 0, Math.PI * 2); ctx.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Soft radial glow for fake bloom: additive sprites at lamps, muzzle and sun.
+export function glowTexture() {
+  return canvas(128, (ctx, s) => {
+    const g = ctx.createRadialGradient(s / 2, s / 2, 2, s / 2, s / 2, s / 2);
+    g.addColorStop(0, 'rgba(255,240,210,1)');
+    g.addColorStop(0.4, 'rgba(255,180,80,0.45)');
+    g.addColorStop(1, 'rgba(255,140,40,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, s, s);
+  });
+}
+
+// Wall sign: dark plate, bold text, hazard edge. One canvas per label, drawn once.
+export function signTexture(text, sub, color) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1c130a';
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(6, 6, 500, 116);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 64px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, sub ? 52 : 66);
+  if (sub) {
+    ctx.fillStyle = '#f2e8d5';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.fillText(sub, 256, 100);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Lit window: warm amber panes behind a dark frame, for the outer walls.
+function windowTexture() {
+  return canvas(256, (ctx, s) => {
+    ctx.fillStyle = '#171009';
+    ctx.fillRect(0, 0, s, s);
+    const g = ctx.createLinearGradient(0, 0, 0, s);
+    g.addColorStop(0, '#ffd98a');
+    g.addColorStop(1, '#ff9a3c');
+    ctx.fillStyle = g;
+    ctx.fillRect(14, 14, s - 28, s - 28);
+    ctx.fillStyle = 'rgba(23,16,9,0.85)';
+    ctx.fillRect(14, s / 2 - 6, s - 28, 12);
+    ctx.fillRect(s / 2 - 6, 14, 12, s - 28);
+    ctx.fillStyle = 'rgba(23,16,9,0.5)';
+    ctx.fillRect(60, 60, 60, 30);
+    ctx.fillRect(150, 150, 50, 40);
+  });
+}
+
+// Courtyard paving: a ring and radial joints, transparent elsewhere.
+export function pavingTexture() {
+  return canvas(256, (ctx, s) => {
+    ctx.clearRect(0, 0, s, s);
+    ctx.strokeStyle = 'rgba(242,232,213,0.5)';
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(s / 2, s / 2, 118, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(s / 2, s / 2, 78, 0, Math.PI * 2); ctx.stroke();
+    for (let i = 0; i < 8; i += 1) {
+      const a = (i * Math.PI) / 4;
+      ctx.beginPath();
+      ctx.moveTo(s / 2 + Math.cos(a) * 78, s / 2 + Math.sin(a) * 78);
+      ctx.lineTo(s / 2 + Math.cos(a) * 118, s / 2 + Math.sin(a) * 118);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,122,26,0.85)';
+    ctx.font = 'bold 34px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CINDER YARD', s / 2, s / 2 + 12);
+  });
+}
+
+// Team flag: ember orange, wordmark and a flame triangle.
+export function flagTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 160;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ff7a1a';
+  ctx.fillRect(0, 0, 256, 160);
+  ctx.fillStyle = '#1c130a';
+  ctx.beginPath();
+  ctx.moveTo(128, 22); ctx.lineTo(158, 78); ctx.lineTo(128, 64); ctx.lineTo(98, 78);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#f2e8d5';
+  ctx.font = 'bold 30px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('EMBERLINE', 128, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export const TEXTURES = {
   // Asphalt floor: near-black brown, speckle noise, a few darker patches.
   floor: canvas(256, (ctx, s) => {
@@ -181,6 +313,21 @@ export const TEXTURES = {
     ctx.fillStyle = 'rgba(23,16,9,0.6)';
     for (const [x, y] of [[8, 8], [248, 8], [8, 248], [248, 248]]) {
       ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }),
+  // Lit window glass (emissive in the material, not the texture).
+  glass: windowTexture(),
+  // Dark steel for beams and pipes: panels with rivet dots.
+  steel: canvas(256, (ctx, s) => {
+    ctx.fillStyle = '#33302c';
+    ctx.fillRect(0, 0, s, s);
+    speckle(ctx, s, 500, ['#45413b', '#24211d'], 0.4);
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(0, 0, s, 6);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    for (let x = 16; x < s; x += 32) {
+      ctx.beginPath(); ctx.arc(x, 20, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, s - 20, 3, 0, Math.PI * 2); ctx.fill();
     }
   }),
 };
