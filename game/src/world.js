@@ -128,7 +128,7 @@ export function createWorld(scene) {
       }),
     );
     decal.rotation.x = -Math.PI / 2;
-    decal.position.set(site.center.x + (key === 'A' ? 2 : -2), 0.04, site.center.z);
+    decal.position.set(site.center.x + (key === 'A' ? 4.5 : -4.5), 0.04, site.center.z);
     group.add(decal);
   }
 

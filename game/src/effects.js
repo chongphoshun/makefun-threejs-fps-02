@@ -57,7 +57,7 @@ export function createEffects(scene) {
     group.visible = false;
     for (let i = 0; i < SMOKE_PUFFS; i += 1) {
       const puff = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: smokeTex, color: 0xc9c2b8, transparent: true, opacity: 0.25, depthWrite: false,
+        map: smokeTex, color: 0xd5cfc4, transparent: true, opacity: 0.35, depthWrite: false,
       }));
       group.add(puff);
     }
@@ -190,13 +190,13 @@ export function createEffects(scene) {
     for (let i = 0; i < SMOKE_PUFFS; i += 1) {
       const o = (c * SMOKE_PUFFS + i) * 3;
       smokeSeed[o] = (Math.random() * 2 - 1) * 1.8;
-      smokeSeed[o + 1] = Math.random() * 1.4 + 0.3;
+      smokeSeed[o + 1] = Math.random() * 1.2 + 0.1;
       smokeSeed[o + 2] = (Math.random() * 2 - 1) * 1.8;
       const puff = group.children[i];
       puff.position.set(smokeSeed[o], smokeSeed[o + 1], smokeSeed[o + 2]);
       const b = (c * SMOKE_PUFFS + i) * 2;
-      smokeBase[b] = 1.8 + Math.random() * 1.6;
-      smokeBase[b + 1] = 0.16 + Math.random() * 0.12;
+      smokeBase[b] = 2.2 + Math.random() * 1.4;
+      smokeBase[b + 1] = 0.28 + Math.random() * 0.14;
       puff.scale.setScalar(smokeBase[b]);
       puff.material.opacity = smokeBase[b + 1];
       puff.material.rotation = Math.random() * Math.PI * 2;
