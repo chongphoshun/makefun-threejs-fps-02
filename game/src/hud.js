@@ -48,6 +48,13 @@ export function createHud(world) {
   const promptEl = $('prompt');
   const buyMenu = $('buy-menu');
   const buyMoney = $('buy-money');
+  const radioEl = $('radio');
+  const flashOverlay = $('flash-overlay');
+  const scoreboard = $('scoreboard');
+  const scoreTitle = $('score-title');
+  const scoreSub = $('score-sub');
+  const scoreTable = $('score-table');
+  const scoreLog = $('score-log');
   const minimap = $('minimap');
   const mapCtx = minimap.getContext('2d');
 
@@ -149,6 +156,38 @@ export function createHud(world) {
       while (feed.children.length > 5) feed.removeChild(feed.lastChild);
       setTimeout(() => row.classList.add('fade'), 4200);
       setTimeout(() => row.remove(), 5000);
+    },
+    // Radio callouts: short voice lines from the team, same feed style as the killfeed.
+    radio(name, text, team = 'ember') {
+      const row = document.createElement('div');
+      row.className = 'radio-row';
+      row.innerHTML = `<b class="${team === 'ash' ? 'ash' : ''}">${name}</b> — ${text}`;
+      radioEl.prepend(row);
+      while (radioEl.children.length > 4) radioEl.removeChild(radioEl.lastChild);
+      setTimeout(() => row.classList.add('fade'), 5200);
+      setTimeout(() => row.remove(), 6000);
+    },
+    // Flashbang blindness: a white wash that fades back out.
+    flashBlind(strength) {
+      flashOverlay.style.transition = 'none';
+      flashOverlay.style.opacity = String(Math.max(0, Math.min(1, strength)));
+      void flashOverlay.offsetWidth;
+      flashOverlay.style.transition = 'opacity 1.1s ease-out';
+      flashOverlay.style.opacity = '0';
+    },
+    showScoreboard(data) {
+      scoreTitle.textContent = data.title;
+      scoreSub.textContent = data.sub;
+      let html = '<tr><th>PLAYER</th><th>TEAM</th><th class="num">K</th><th class="num">D</th><th class="num">HEADSHOTS</th><th class="num">ACC</th></tr>';
+      for (const row of data.rows) {
+        html += `<tr><td>${row.name}</td><td>${row.team}</td><td class="num">${row.k}</td><td class="num">${row.d}</td><td class="num">${row.hs}</td><td class="num">${row.acc}</td></tr>`;
+      }
+      scoreTable.innerHTML = html;
+      scoreLog.innerHTML = data.log.map((line) => `<div>${line}</div>`).join('');
+      scoreboard.hidden = false;
+    },
+    hideScoreboard() {
+      scoreboard.hidden = true;
     },
     hitMarker(killed, holdMs = 90) {
       hitmarker.classList.add('on');
