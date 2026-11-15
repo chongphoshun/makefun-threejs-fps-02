@@ -60,13 +60,15 @@ export function createBots(scene, world, hooks) {
   function buildModel(bot) {
     const group = new THREE.Group();
     const mat = teamMat[bot.team];
+    // Per-bot torso material so a hit flash lights up only the bot that was shot.
+    const torsoMat = mat.clone();
     const legL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.52, 0.16), darkMat);
     legL.position.set(-0.11, 0.26, 0);
     legL.userData = { bot, part: 'leg' };
     const legR = legL.clone();
     legR.position.x = 0.11;
     legR.userData = { bot, part: 'leg' };
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), mat);
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), torsoMat);
     torso.position.y = 1.06;
     torso.userData = { bot, part: 'torso' };
     const vest = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.4, 0.34), darkMat);
@@ -76,12 +78,18 @@ export function createBots(scene, world, hooks) {
     head.userData = { bot, part: 'head' };
     const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.36), mat);
     helmet.position.y = 1.66;
+    // Arms: dark sleeves angled forward, holding the gun.
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.5, 0.13), darkMat);
+    armL.position.set(-0.33, 1.12, -0.08);
+    armL.rotation.x = -0.5;
+    const armR = armL.clone();
+    armR.position.x = 0.33;
     const gun = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.55), darkMat);
     gun.position.set(0.14, 1.28, -0.3);
-    group.add(legL, legR, torso, vest, head, helmet, gun);
+    group.add(legL, legR, torso, vest, head, helmet, armL, armR, gun);
     group.traverse((mesh) => { if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; } });
     hitMeshes.push(torso, head, legL, legR);
-    return { group, legL, legR, torso, head, gun };
+    return { group, legL, legR, torso, torsoMat, armL, armR, head, gun };
   }
 
   function makeBot(team, name, index) {
@@ -95,7 +103,7 @@ export function createBots(scene, world, hooks) {
       lastSeen: new THREE.Vector3(), lastSeenTime: -99,
       reactAt: 0, burstLeft: 0, nextShotAt: 0, pauseUntil: 0, blindUntil: 0,
       strafeDir: 1, strafeUntil: 0, scanPhase: Math.random() * 6,
-      defuseT: 0, fallT: 0, walkPhase: Math.random() * 6, speed: 4.2,
+      defuseT: 0, fallT: 0, flashT: 0, walkPhase: Math.random() * 6, speed: 4.2,
       hearAt: 0, hearPos: new THREE.Vector3(), thinkAt: Math.random() * 0.15,
     };
     const spawn = SPAWNS[team][index % SPAWNS[team].length];
@@ -204,6 +212,7 @@ export function createBots(scene, world, hooks) {
     }
     bot.health -= left;
     bot.defuseT = 0;
+    bot.flashT = 1; // hit flash: the torso glows red briefly, decaying in stepBot.
     if (bot.health <= 0) {
       bot.health = 0;
       bot.alive = false;
@@ -235,6 +244,9 @@ export function createBots(scene, world, hooks) {
       bot.blindUntil = 0;
       bot.defuseT = 0;
       bot.fallT = 0;
+      bot.flashT = 0;
+      bot.parts.torsoMat.emissive.setHex(0x000000);
+      bot.parts.torsoMat.emissiveIntensity = 0;
       bot.burstLeft = 0;
       bot.parts.group.rotation.set(0, 0, 0);
       bot.parts.group.position.y = 0;
@@ -443,6 +455,16 @@ export function createBots(scene, world, hooks) {
     const swing = Math.min(1, mover.groundSpeed() / 4) * 0.5;
     bot.parts.legL.rotation.x = Math.sin(bot.walkPhase) * swing;
     bot.parts.legR.rotation.x = -Math.sin(bot.walkPhase) * swing;
+    bot.parts.armL.rotation.x = -0.5 - Math.sin(bot.walkPhase) * swing * 0.7;
+    bot.parts.armR.rotation.x = -0.5 + Math.sin(bot.walkPhase) * swing * 0.7;
+    // Hit flash decay: torso glows red, fading over ~0.3 s.
+    if (bot.flashT > 0) {
+      bot.flashT = Math.max(0, bot.flashT - dt * 3.5);
+      bot.parts.torsoMat.emissive.setHex(0xff2a1a);
+      bot.parts.torsoMat.emissiveIntensity = bot.flashT * 0.9;
+    } else if (bot.parts.torsoMat.emissiveIntensity !== 0) {
+      bot.parts.torsoMat.emissiveIntensity = 0;
+    }
     bot.parts.group.position.set(pos.x, pos.y, pos.z);
     bot.parts.group.rotation.y = body.yaw;
   }

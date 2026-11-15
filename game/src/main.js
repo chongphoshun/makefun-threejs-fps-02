@@ -37,11 +37,13 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
 document.getElementById('game').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(PALETTE.canvas);
-scene.fog = new THREE.Fog(new THREE.Color('#241812'), 30, 90);
+scene.fog = new THREE.Fog(new THREE.Color('#1a120b'), 20, 62);
 const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.05, 160);
 scene.add(camera);
 

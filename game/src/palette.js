@@ -14,6 +14,11 @@ export const PALETTE = {
   ash: '#5aa9e6', // cold blue (defenders)
   good: '#7dd069', // healthy / win
   danger: '#ff4d3d', // damage / lose
+  concrete: '#777770', // mid grey concrete (mid lane)
+  sand: '#8a7a4a', // sandbags
+  hazard: '#e8b820', // hazard stripes
+  zoneB: '#2e8f86', // B site bright teal
+  gunmetal: '#23262b', // dark weapon metal
 };
 
 export function shade(name) {

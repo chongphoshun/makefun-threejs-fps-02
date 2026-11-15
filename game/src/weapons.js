@@ -22,10 +22,37 @@ export const HELMET_PRICE = 350;
 export const ARMOR_MAX = 100;
 
 const GRIP = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.surface), roughness: 0.7, metalness: 0.2 });
-const STEEL = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.ink), roughness: 0.45, metalness: 0.4 });
+const STEEL = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.gunmetal), roughness: 0.35, metalness: 0.65 });
 const EMBER = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.accent), roughness: 0.5, metalness: 0.3 });
 const GREY = new THREE.MeshStandardMaterial({ color: new THREE.Color('#8a8a8a'), roughness: 0.6, metalness: 0.2 });
 const WHITE = new THREE.MeshStandardMaterial({ color: new THREE.Color('#e8e8e8'), roughness: 0.5, metalness: 0.1 });
+
+// Muzzle-flash sprite: a radial glow with four spikes, drawn once on a canvas.
+function flashTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
+  g.addColorStop(0, 'rgba(255,244,210,1)');
+  g.addColorStop(0.35, 'rgba(255,170,60,0.9)');
+  g.addColorStop(1, 'rgba(255,120,20,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = 'rgba(255,225,160,0.95)';
+  for (let i = 0; i < 4; i += 1) {
+    ctx.save();
+    ctx.translate(64, 64);
+    ctx.rotate((i * Math.PI) / 2 + Math.PI / 4);
+    ctx.beginPath();
+    ctx.moveTo(-5, 0); ctx.lineTo(0, -58); ctx.lineTo(5, 0); ctx.lineTo(0, 10);
+    ctx.fill();
+    ctx.restore();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
 function part(w, h, d, x, y, z, mat) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -73,8 +100,8 @@ export function createWeapons(camera) {
     camera.add(models[id]);
   }
   const flash = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.4, 0.4),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color(PALETTE.accent), transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }),
+    new THREE.PlaneGeometry(0.55, 0.55),
+    new THREE.MeshBasicMaterial({ map: flashTexture(), transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }),
   );
   flash.position.set(0.24, -0.13, -1.15);
   flash.visible = false;
@@ -109,7 +136,7 @@ export function createWeapons(camera) {
     }
     flash.visible = state.flash > 0;
     flash.rotation.z = state.flash * 30;
-    flashLight.intensity = state.flash > 0 ? 18 : 0;
+    flashLight.intensity = state.flash > 0 ? 26 : 0;
     const def = WEAPONS[state.current];
     if (state.reloadLeft > 0) {
       state.reloadLeft = Math.max(0, state.reloadLeft - dt);

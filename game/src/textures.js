@@ -38,6 +38,42 @@ function streaks(ctx, size, n, color, vertical) {
   ctx.globalAlpha = 1;
 }
 
+function wallTex(base, speckColors) {
+  return canvas(256, (ctx, s) => {
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, s, s);
+    speckle(ctx, s, 1500, speckColors, 0.4);
+    ctx.strokeStyle = 'rgba(23,16,9,0.55)';
+    ctx.lineWidth = 3;
+    for (let i = 0; i <= 4; i += 1) {
+      ctx.beginPath(); ctx.moveTo(0, i * 64); ctx.lineTo(s, i * 64); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(i * 64, 0); ctx.lineTo(i * 64, s); ctx.stroke();
+    }
+    const grad = ctx.createLinearGradient(0, s * 0.7, 0, s);
+    grad.addColorStop(0, 'rgba(23,16,9,0)');
+    grad.addColorStop(1, 'rgba(23,16,9,0.5)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, s, s);
+  });
+}
+
+// Painted floor decal: a big letter in a ring, transparent elsewhere.
+export function letterDecal(letter, color) {
+  return canvas(256, (ctx, s) => {
+    ctx.clearRect(0, 0, s, s);
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.95;
+    ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.arc(s / 2, s / 2, 106, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.font = 'bold 150px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter, s / 2, s / 2 + 6);
+    ctx.globalAlpha = 1;
+  });
+}
+
 export const TEXTURES = {
   // Asphalt floor: near-black brown, speckle noise, a few darker patches.
   floor: canvas(256, (ctx, s) => {
@@ -55,21 +91,48 @@ export const TEXTURES = {
     }
   }),
   // Concrete wall: warm panels with seams and grime at the base.
-  wall: canvas(256, (ctx, s) => {
-    ctx.fillStyle = '#4d3b26';
+  wall: wallTex('#4d3b26', ['#5d4a2e', '#3a2c1c', '#6b5638']),
+  // Zone walls: A site warm orange-brown, B site cool teal-grey, mid plain grey.
+  wallWarm: wallTex('#6e3a1e', ['#8a4a26', '#542a14', '#a35a2e']),
+  wallCool: wallTex('#2e4a4a', ['#3a5f5c', '#223838', '#4a7a72']),
+  wallGrey: wallTex('#5a5a58', ['#6e6e6a', '#464644', '#82827e']),
+  // Striped crate: wood with hazard chevrons on the top and bottom edges.
+  stripe: canvas(256, (ctx, s) => {
+    ctx.fillStyle = '#6b5638';
     ctx.fillRect(0, 0, s, s);
-    speckle(ctx, s, 1500, ['#5d4a2e', '#3a2c1c', '#6b5638'], 0.4);
-    ctx.strokeStyle = 'rgba(23,16,9,0.55)';
-    ctx.lineWidth = 3;
-    for (let i = 0; i <= 4; i += 1) {
-      ctx.beginPath(); ctx.moveTo(0, i * 64); ctx.lineTo(s, i * 64); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(i * 64, 0); ctx.lineTo(i * 64, s); ctx.stroke();
+    streaks(ctx, s, 30, '#4a3a22', false);
+    speckle(ctx, s, 500, ['#7d6a44', '#54401f'], 0.4);
+    for (const y0 of [0, s - 28]) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, y0, s, 28); ctx.clip();
+      for (let x = -28; x < s + 28; x += 28) {
+        ctx.fillStyle = '#e8b820';
+        ctx.beginPath();
+        ctx.moveTo(x, y0 + 28); ctx.lineTo(x + 14, y0); ctx.lineTo(x + 28, y0); ctx.lineTo(x + 14, y0 + 28);
+        ctx.fill();
+      }
+      ctx.restore();
     }
-    const grad = ctx.createLinearGradient(0, s * 0.7, 0, s);
-    grad.addColorStop(0, 'rgba(23,16,9,0)');
-    grad.addColorStop(1, 'rgba(23,16,9,0.5)');
-    ctx.fillStyle = grad;
+  }),
+  // Sandbags: stacked rounded rows in olive khaki.
+  sandbag: canvas(256, (ctx, s) => {
+    ctx.fillStyle = '#7a6f4d';
     ctx.fillRect(0, 0, s, s);
+    for (let row = 0; row < 4; row += 1) {
+      const y = row * 64;
+      const off = (row % 2) * 32;
+      for (let col = -1; col < 5; col += 1) {
+        const x = col * 64 + off;
+        ctx.fillStyle = row % 2 ? '#857a56' : '#6e6445';
+        ctx.beginPath();
+        ctx.ellipse(x + 32, y + 32, 30, 26, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(40,32,18,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    speckle(ctx, s, 700, ['#8f8358', '#5d5336'], 0.35);
   }),
   // Rust container: corrugated vertical ribs with rust drips.
   rust: canvas(256, (ctx, s) => {

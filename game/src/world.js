@@ -3,54 +3,55 @@
 // is a collider and a surface a bullet stops on; the waypoint graph is what the bots walk.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
-import { TEXTURES } from './textures.js';
+import { TEXTURES, letterDecal } from './textures.js';
 
 // [width, height, depth, x, y, z, material]
 const BOXES = [
   // Floor and outer walls (5 m high, open sky so one low sun reaches every corner).
+  // Zone palettes: west/south warm orange (Ember side, A site), east/north cool teal (Ash side, B site).
   [45, 0.4, 37, 0, -0.2, 0, 'surface'],
-  [0.5, 5, 37, -22.25, 2.5, 0, 'wall'],
-  [0.5, 5, 37, 22.25, 2.5, 0, 'wall'],
-  [45, 5, 0.5, 0, 2.5, -18.25, 'wall'],
-  [45, 5, 0.5, 0, 2.5, 18.25, 'wall'],
-  // Mid corridor: two long walls and a choke with a 1.2 m doorway at the centre.
-  [1.2, 3.6, 12, -3.4, 1.8, 0, 'wall'],
-  [1.2, 3.6, 12, 3.4, 1.8, 0, 'wall'],
-  [2.2, 3.6, 1, -1.7, 1.8, 0, 'wall'],
-  [2.2, 3.6, 1, 1.7, 1.8, 0, 'wall'],
+  [0.5, 5, 37, -22.25, 2.5, 0, 'wallA'],
+  [0.5, 5, 37, 22.25, 2.5, 0, 'wallB'],
+  [45, 5, 0.5, 0, 2.5, -18.25, 'wallB'],
+  [45, 5, 0.5, 0, 2.5, 18.25, 'wallA'],
+  // Mid corridor: grey concrete, two long walls and a choke with a 1.2 m doorway at the centre.
+  [1.2, 3.6, 12, -3.4, 1.8, 0, 'wallMid'],
+  [1.2, 3.6, 12, 3.4, 1.8, 0, 'wallMid'],
+  [2.2, 3.6, 1, -1.7, 1.8, 0, 'wallMid'],
+  [2.2, 3.6, 1, 1.7, 1.8, 0, 'wallMid'],
   // Mid crates (kept off the centre line so the choke stays walkable).
-  [1.4, 1.1, 1.4, 1.6, 0.55, 6.5, 'crate'],
+  [1.4, 1.1, 1.4, 1.6, 0.55, 6.5, 'stripe'],
   [1.4, 1.1, 1.4, -1.6, 0.55, -6.5, 'crate'],
-  [1.4, 1.1, 1.4, -1.6, 0.55, 9.5, 'crate'],
+  [1.4, 1.1, 1.4, -1.6, 0.55, 9.5, 'stripe'],
   // Lane walls: the west and east lanes are split from the yard by long walls.
-  [1, 3.4, 8, -13, 1.7, 4, 'wall'],
-  [1, 3.4, 6, -13, 1.7, -6, 'wall'],
-  [1, 3.4, 8, 13, 1.7, 4, 'wall'],
-  [1, 3.4, 6, 13, 1.7, -6, 'wall'],
+  [1, 3.4, 8, -13, 1.7, 4, 'wallA'],
+  [1, 3.4, 6, -13, 1.7, -6, 'wallA'],
+  [1, 3.4, 8, 13, 1.7, 4, 'wallB'],
+  [1, 3.4, 6, 13, 1.7, -6, 'wallB'],
   // Connector walls at z = -8, with gaps at the lanes and at mid.
-  [4, 3.4, 1, -6.5, 1.7, -8, 'wall'],
-  [4, 3.4, 1, 6.5, 1.7, -8, 'wall'],
+  [4, 3.4, 1, -6.5, 1.7, -8, 'wallMid'],
+  [4, 3.4, 1, 6.5, 1.7, -8, 'wallMid'],
   // Lane crates and pillars.
-  [1.6, 1.1, 1.6, -10, 0.55, 0, 'crate'],
-  [1.6, 1.1, 1.6, 10, 0.55, 0, 'crate'],
-  [1.2, 4.5, 1.2, -8, 2.25, -2, 'wall'],
-  [1.2, 4.5, 1.2, 8, 2.25, -2, 'wall'],
-  [1.2, 4.5, 1.2, -8, 2.25, 8, 'wall'],
-  [1.2, 4.5, 1.2, 8, 2.25, 8, 'wall'],
+  [1.6, 1.1, 1.6, -10, 0.55, 0, 'stripe'],
+  [1.6, 1.1, 1.6, 10, 0.55, 0, 'stripe'],
+  [1.2, 4.5, 1.2, -8, 2.25, -2, 'wallMid'],
+  [1.2, 4.5, 1.2, 8, 2.25, -2, 'wallMid'],
+  [1.2, 4.5, 1.2, -8, 2.25, 8, 'wallMid'],
+  [1.2, 4.5, 1.2, 8, 2.25, 8, 'wallMid'],
   [2.2, 1.1, 1.2, -10, 0.55, 12.5, 'crate'],
   [2.2, 1.1, 1.2, 10, 0.55, 12.5, 'crate'],
-  [3, 0.9, 0.8, 0, 0.45, 11.5, 'wall'],
-  [3, 0.9, 0.8, -6, 0.45, -13.5, 'wall'],
-  [3, 0.9, 0.8, 6, 0.45, -13.5, 'wall'],
+  [3, 0.9, 0.8, 0, 0.45, 11.5, 'sandbag'],
+  [3, 0.9, 0.8, -6, 0.45, -13.5, 'sandbag'],
+  [3, 0.9, 0.8, 6, 0.45, -13.5, 'sandbag'],
   // Site A (west): rust container stack and a teal box, with a low crate for cover.
   [5, 2.6, 2.4, -17, 1.3, -14.5, 'rust'],
   [2.4, 2.6, 2.4, -14.8, 1.3, -11, 'teal'],
-  [1.6, 1.1, 1.6, -18.5, 0.55, -10.5, 'crate'],
+  [1.6, 1.1, 1.6, -18.5, 0.55, -10.5, 'stripe'],
   [2.4, 1.1, 1.2, -19, 0.55, -13, 'crate'],
   // Site B (east): the mirror, colours swapped.
   [5, 2.6, 2.4, 17, 1.3, -14.5, 'teal'],
   [2.4, 2.6, 2.4, 14.8, 1.3, -11, 'rust'],
-  [1.6, 1.1, 1.6, 18.5, 0.55, -10.5, 'crate'],
+  [1.6, 1.1, 1.6, 18.5, 0.55, -10.5, 'stripe'],
   [2.4, 1.1, 1.2, 19, 0.55, -13, 'crate'],
   // Spawn cover, south (Ember) and north (Ash).
   [2, 1.1, 1, -4, 0.55, 15.5, 'crate'],
@@ -104,6 +105,13 @@ export function createWorld(scene) {
       metalness: name === 'rust' || name === 'teal' ? 0.25 : 0.03,
     });
   }
+  // Zone materials: one texture per zone palette, same roughness as the walls.
+  for (const [name, tex] of Object.entries({
+    wallA: TEXTURES.wallWarm, wallB: TEXTURES.wallCool, wallMid: TEXTURES.wallGrey,
+    stripe: TEXTURES.stripe, sandbag: TEXTURES.sandbag,
+  })) {
+    materials[name] = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex, roughness: 0.92, metalness: 0.03 });
+  }
   const colliders = [];
   const shootables = [];
   const footprints = [];
@@ -135,26 +143,64 @@ export function createWorld(scene) {
     const marker = new THREE.Mesh(
       new THREE.PlaneGeometry(site.rect.x1 - site.rect.x0, site.rect.z1 - site.rect.z0),
       new THREE.MeshBasicMaterial({
-        color: new THREE.Color(key === 'A' ? PALETTE.accent : PALETTE.ash),
-        transparent: true, opacity: 0.14, side: THREE.DoubleSide,
+        color: new THREE.Color(key === 'A' ? PALETTE.accent : PALETTE.zoneB),
+        transparent: true, opacity: 0.18, side: THREE.DoubleSide,
       }),
     );
     marker.rotation.x = -Math.PI / 2;
     marker.position.set(site.center.x, 0.03, site.center.z);
     group.add(marker);
-    const label = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.6, 1.6),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(PALETTE.ink), transparent: true, opacity: 0.5 }),
+    // Big painted letter on the floor: the site reads at a glance.
+    const decal = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.4, 3.4),
+      new THREE.MeshBasicMaterial({
+        map: letterDecal(key, key === 'A' ? PALETTE.accent : PALETTE.zoneB),
+        transparent: true, opacity: 0.9, depthWrite: false,
+      }),
     );
-    label.rotation.x = -Math.PI / 2;
-    label.position.set(site.center.x, 0.035, site.center.z);
-    group.add(label);
+    decal.rotation.x = -Math.PI / 2;
+    decal.position.set(site.center.x, 0.04, site.center.z);
+    group.add(decal);
+  }
+
+  // Zone floor tints: each area of the yard reads in its own colour at a glance.
+  // Drawn in order so site tints win over spawn tints where they overlap.
+  const ZONE_TINTS = [
+    { x0: -7, x1: 7, z0: -18.5, z1: 18.5, color: PALETTE.concrete, opacity: 0.08 }, // mid grey
+    { x0: -8, x1: 8, z0: 12, z1: 18.5, color: PALETTE.accent, opacity: 0.07 }, // Ember spawn warm
+    { x0: -8, x1: 8, z0: -18.5, z1: -12, color: PALETTE.ash, opacity: 0.07 }, // Ash spawn cool
+    { x0: -22.5, x1: -12.5, z0: -18.5, z1: -8.5, color: PALETTE.accent, opacity: 0.10 }, // A warm
+    { x0: 12.5, x1: 22.5, z0: -18.5, z1: -8.5, color: PALETTE.zoneB, opacity: 0.10 }, // B cool
+  ];
+  for (const t of ZONE_TINTS) {
+    const tint = new THREE.Mesh(
+      new THREE.PlaneGeometry(t.x1 - t.x0, t.z1 - t.z0),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(t.color), transparent: true, opacity: t.opacity, depthWrite: false }),
+    );
+    tint.rotation.x = -Math.PI / 2;
+    tint.position.set((t.x0 + t.x1) / 2, 0.02, (t.z0 + t.z1) / 2);
+    group.add(tint);
+  }
+
+  // Barrels: visual-only drums sitting on top of existing crate cover, so no
+  // collider or sightline changes — the crates underneath already block both.
+  const barrelCols = [PALETTE.rust, PALETTE.teal, '#3a3a3a'];
+  for (let i = 0; i < 4; i += 1) {
+    const [bx, bz] = [[-10, 0], [10, 0], [-18.5, -10.5], [18.5, -10.5]][i];
+    const barrel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.32, 0.32, 0.85, 14),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(barrelCols[i % 3]), roughness: 0.6, metalness: 0.35 }),
+    );
+    barrel.position.set(bx, 1.53, bz);
+    barrel.castShadow = true;
+    barrel.receiveShadow = true;
+    group.add(barrel);
   }
 
   // Light: a low amber sun, a cool sky fill, and a floodlight over each site.
-  const sky = new THREE.HemisphereLight(new THREE.Color('#ffd9a0'), new THREE.Color('#4a3620'), 1.7);
+  const sky = new THREE.HemisphereLight(new THREE.Color('#ffe2b8'), new THREE.Color('#2c1e11'), 1.35);
   scene.add(sky);
-  const sun = new THREE.DirectionalLight(new THREE.Color('#ffb36b'), 3.5);
+  const sun = new THREE.DirectionalLight(new THREE.Color('#ffb36b'), 4.5);
   sun.position.set(14, 18, 12);
   sun.target.position.set(0, 0, -4);
   sun.castShadow = true;
@@ -171,10 +217,17 @@ export function createWorld(scene) {
   scene.add(fill);
   for (const key of ['A', 'B']) {
     const site = SITES[key];
-    const lamp = new THREE.PointLight(new THREE.Color(key === 'A' ? PALETTE.accent : PALETTE.ash), 14, 16);
+    const lamp = new THREE.PointLight(new THREE.Color(key === 'A' ? PALETTE.accent : PALETTE.zoneB), 20, 18);
     lamp.position.set(site.center.x, 4.4, site.center.z);
     scene.add(lamp);
   }
+  // Extra coloured accents: warm amber over the mid choke, ember orange over the south spawn.
+  const midLamp = new THREE.PointLight(new THREE.Color('#ff9a3c'), 12, 18);
+  midLamp.position.set(0, 4.5, 0);
+  scene.add(midLamp);
+  const spawnLamp = new THREE.PointLight(new THREE.Color(PALETTE.accent), 8, 14);
+  spawnLamp.position.set(0, 4, 15.5);
+  scene.add(spawnLamp);
 
   // Waypoint graph: adjacency lists, BFS pathfinding, nearest-node lookup.
   const adjacency = NODES.map(() => []);
