@@ -179,8 +179,7 @@ export function createWeapons(camera) {
   const chargeWire = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.006, 6, 12), EMBER);
   chargeWire.position.set(-0.05, 0.04, 0);
   charge.add(chargeBody, chargeLamp, chargeWire);
-  charge.position.set(0.12, -0.2, -0.5);
-  charge.scale.setScalar(1.7);
+  charge.position.set(0.1, -0.21, -0.55);
   charge.visible = false;
   camera.add(charge);
 
