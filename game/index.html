@@ -4,7 +4,7 @@
   2 gunplay (headshots, recoil, spread, crouch, reload, ADS): src/combat.js (trigger + hit resolution) + src/weapons.js (arsenal) + src/move.js (mover)
   3 tactics (plant/defuse, buy menu, grenades, 5v5 bots): src/bomb.js (plant/defuse, defuse kit) + src/grenade.js + src/economy.js (ARMOURY shop) + src/nav.js (bot pathing) + src/hearing.js (gunshot + footstep awareness) + src/bots.js (5v5 AI, nameplates)
   4 map and look (Cinder Yard brickworks, Kiln Hall / Clay Pits, sunset skybox, canvas textures, dusk light, signage): src/world.js + src/textures.js
-  5 code (one module per job, fixed 60 Hz step, pooled effects): src/main.js is boot + wiring only (222 lines) + src/loop.js + src/effects.js (pooled tracers/sparks/casings)
+  5 code (one module per job, fixed 60 Hz step, pooled effects): src/main.js is boot + wiring only (263 lines) + src/loop.js + src/effects.js (pooled tracers/sparks/casings)
   Post: glow sprites as bloom, vignette + per-site colour grade (#grade, loop.js setGrade).
   Round report: scoreboard K/A/D, HS%, DMG, cash, MVP (src/hud.js, Tab in live play).
   Screenshots are real headless-Chrome captures of this code; the first is a live firefight. -->
