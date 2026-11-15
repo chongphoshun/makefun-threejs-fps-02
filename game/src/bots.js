@@ -59,8 +59,9 @@ export function createBots(scene, world, hooks) {
     const x = c.getContext('2d');
     x.font = 'bold 20px sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.shadowColor = '#000'; x.shadowBlur = 4;
+    x.lineWidth = 5; x.strokeStyle = '#0d0d0d';
     x.fillStyle = color;
+    x.strokeText(name.toUpperCase(), 64, 16);
     x.fillText(name.toUpperCase(), 64, 16);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -118,7 +119,7 @@ export function createBots(scene, world, hooks) {
       gun.add(glove);
     }
     group.add(gun);
-    const plate = nameplate(bot.name, bot.team === 'ember' ? PALETTE.accent : PALETTE.ash);
+    const plate = nameplate(bot.name, bot.team === 'ember' ? '#ffb36b' : '#9cc8ff');
     plate.position.y = 1.98;
     group.add(plate);
     group.traverse((mesh) => { if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; } });
