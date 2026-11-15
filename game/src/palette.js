@@ -9,7 +9,7 @@ export const PALETTE = {
   ink: '#f2e8d5', // warm off-white
   muted: '#a89a80', // dim warm grey
   accent: '#ff7a1a', // ember orange (attackers, crosshair, highlights)
-  ash: '#2f4a6b', // deep slate blue (defenders)
+  ash: '#14355f', // deep saturated slate blue — B/R high enough to read blue under the warm sunset sun
   good: '#7dd069', // healthy / win
   danger: '#ff4d3d', // damage / lose
   concrete: '#777770', // mid grey concrete (mid lane)
