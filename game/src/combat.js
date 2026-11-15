@@ -10,7 +10,6 @@ export function createShooter({ scene, camera, weapons, grenades, effects, audio
   raycaster.far = 90;
   const direction = new THREE.Vector3();
 
-  // The muzzle in world space, so tracers and casings start at the gun, not the eye.
   function muzzleWorld(out) {
     camera.getWorldDirection(direction);
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
@@ -82,7 +81,6 @@ export function createShooter({ scene, camera, weapons, grenades, effects, audio
     }
     weapons.pullTrigger();
     playerMover.recoil(0.009 + hooks.random() * 0.004, (hooks.random() * 2 - 1) * 0.004);
-    // One brass casing out of the gun, to the right.
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
     effects.casing(muzzleWorld(new THREE.Vector3()), right);
     const slot = weapons.ammo[weapons.state.current];

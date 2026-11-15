@@ -4,7 +4,7 @@
 // numbers (score, timer, payouts) still live in game.js; this is the flow around them.
 import { WEAPONS } from './weapons.js';
 
-export function createRounds({ game, weapons, hud, audio, effects, bomb, grenades, getPlayer, getPlayerMover, getBots, stats, roundKills, closeBuy }) {
+export function createRounds({ game, weapons, hud, audio, effects, bomb, grenades, getPlayer, getPlayerMover, getBots, stats, closeBuy }) {
   function spawnPlayer() {
     const player = getPlayer();
     const playerMover = getPlayerMover();
@@ -85,7 +85,6 @@ export function createRounds({ game, weapons, hud, audio, effects, bomb, grenade
     bots.reset(game.state.round);
     bomb.reset();
     grenades.reset();
-    roundKills.length = 0;
     effects.clearBomb();
     hud.setHealth(100, weapons.state.armor);
     hud.setMoney(game.state.money);

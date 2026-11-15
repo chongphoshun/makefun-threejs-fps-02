@@ -57,7 +57,6 @@ function wallTex(base, speckColors) {
   });
 }
 
-// Painted floor decal: a big letter in a ring, transparent elsewhere.
 export function letterDecal(letter, color) {
   return canvas(256, (ctx, s) => {
     ctx.clearRect(0, 0, s, s);
@@ -74,8 +73,6 @@ export function letterDecal(letter, color) {
   });
 }
 
-// Sunset sky: dusk purple up top, ember band at the horizon, a low sun and a few
-// early stars. Painted once, wrapped on a dome (BackSide, no fog).
 export function skyTexture() {
   const c = document.createElement('canvas');
   c.width = 512;
@@ -106,7 +103,6 @@ export function skyTexture() {
   return tex;
 }
 
-// Soft radial glow for fake bloom: additive sprites at lamps, muzzle and sun.
 export function glowTexture() {
   return canvas(128, (ctx, s) => {
     const g = ctx.createRadialGradient(s / 2, s / 2, 2, s / 2, s / 2, s / 2);
@@ -118,7 +114,6 @@ export function glowTexture() {
   });
 }
 
-// Wall sign: dark plate, bold text, hazard edge. One canvas per label, drawn once.
 export function signTexture(text, sub, color) {
   const c = document.createElement('canvas');
   c.width = 512;
@@ -144,7 +139,6 @@ export function signTexture(text, sub, color) {
   return tex;
 }
 
-// Lit window: warm amber panes behind a dark frame, for the outer walls.
 function windowTexture() {
   return canvas(256, (ctx, s) => {
     ctx.fillStyle = '#171009';
@@ -163,7 +157,6 @@ function windowTexture() {
   });
 }
 
-// Courtyard paving: a ring and radial joints, transparent elsewhere.
 export function pavingTexture() {
   return canvas(256, (ctx, s) => {
     ctx.clearRect(0, 0, s, s);
@@ -185,7 +178,6 @@ export function pavingTexture() {
   });
 }
 
-// Team flag: ember orange, wordmark and a flame triangle.
 export function flagTexture() {
   const c = document.createElement('canvas');
   c.width = 256;
@@ -207,7 +199,6 @@ export function flagTexture() {
 }
 
 export const TEXTURES = {
-  // Asphalt floor: near-black brown, speckle noise, a few darker patches.
   floor: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#241a10';
     ctx.fillRect(0, 0, s, s);
@@ -222,13 +213,10 @@ export const TEXTURES = {
       ctx.stroke();
     }
   }),
-  // Concrete wall: warm panels with seams and grime at the base.
   wall: wallTex('#4d3b26', ['#5d4a2e', '#3a2c1c', '#6b5638']),
-  // Zone walls: A site warm orange-brown, B site cool teal-grey, mid plain grey.
   wallWarm: wallTex('#6e3a1e', ['#8a4a26', '#542a14', '#a35a2e']),
   wallCool: wallTex('#2e4a4a', ['#3a5f5c', '#223838', '#4a7a72']),
   wallGrey: wallTex('#5a5a58', ['#6e6e6a', '#464644', '#82827e']),
-  // Striped crate: wood with hazard chevrons on the top and bottom edges.
   stripe: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#6b5638';
     ctx.fillRect(0, 0, s, s);
@@ -246,7 +234,6 @@ export const TEXTURES = {
       ctx.restore();
     }
   }),
-  // Sandbags: stacked rounded rows in olive khaki.
   sandbag: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#7a6f4d';
     ctx.fillRect(0, 0, s, s);
@@ -266,7 +253,6 @@ export const TEXTURES = {
     }
     speckle(ctx, s, 700, ['#8f8358', '#5d5336'], 0.35);
   }),
-  // Rust container: corrugated vertical ribs with rust drips.
   rust: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#b3541e';
     ctx.fillRect(0, 0, s, s);
@@ -282,7 +268,6 @@ export const TEXTURES = {
     ctx.fillRect(0, 0, s, 8);
     ctx.fillRect(0, s - 8, s, 8);
   }),
-  // Teal container: same corrugation, cold steel blue-green.
   teal: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#2e6f6a';
     ctx.fillRect(0, 0, s, s);
@@ -298,7 +283,6 @@ export const TEXTURES = {
     ctx.fillRect(0, 0, s, 8);
     ctx.fillRect(0, s - 8, s, 8);
   }),
-  // Wooden crate: planks with grain and nail dots.
   crate: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#5d4a2e';
     ctx.fillRect(0, 0, s, s);
@@ -315,9 +299,7 @@ export const TEXTURES = {
       ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
     }
   }),
-  // Lit window glass (emissive in the material, not the texture).
   glass: windowTexture(),
-  // Dark steel for beams and pipes: panels with rivet dots.
   steel: canvas(256, (ctx, s) => {
     ctx.fillStyle = '#33302c';
     ctx.fillRect(0, 0, s, s);

@@ -57,7 +57,6 @@ export function createGame() {
     return true;
   }
 
-  // The round's end: pay the teams, advance the round, and say whether the match is over.
   function endRound(winner, reason) {
     if (state.phase === 'roundEnd' || state.phase === 'matchEnd') return null;
     state.winner = winner;
@@ -71,8 +70,6 @@ export function createGame() {
       state.lossStreak += 1;
     }
     state.planted = null;
-    // First to 13 ends it early; otherwise the higher score after round 24 wins,
-    // and a tie plays on into overtime until somebody leads.
     const matchOver = state.score[winner] >= WIN_SCORE
       || (state.round >= TOTAL_ROUNDS && state.score.ember !== state.score.ash);
     state.phase = matchOver ? 'matchEnd' : 'roundEnd';

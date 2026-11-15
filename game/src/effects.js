@@ -7,7 +7,6 @@ const TRACER_COUNT = 24;
 const SPARK_COUNT = 320;
 
 export function createEffects(scene) {
-  // Tracers: one THREE.Line each, shown for a few frames then hidden.
   const tracers = [];
   for (let i = 0; i < TRACER_COUNT; i += 1) {
     const geometry = new THREE.BufferGeometry();
@@ -21,7 +20,6 @@ export function createEffects(scene) {
   }
   let tracerNext = 0;
 
-  // Sparks: one THREE.Points cloud, particles recycled in place.
   const sparkPos = new Float32Array(SPARK_COUNT * 3);
   const sparkVel = new Float32Array(SPARK_COUNT * 3);
   const sparkLife = new Float32Array(SPARK_COUNT);
@@ -36,7 +34,6 @@ export function createEffects(scene) {
   scene.add(sparks);
   let sparkNext = 0;
 
-  // Explosion: an expanding additive sphere plus a point light.
   const boomMesh = new THREE.Mesh(
     new THREE.SphereGeometry(1, 20, 14),
     new THREE.MeshBasicMaterial({ color: new THREE.Color(PALETTE.accent), transparent: true, opacity: 0, depthWrite: false }),
@@ -47,7 +44,6 @@ export function createEffects(scene) {
   scene.add(boomLight);
   let boomLife = 0;
 
-  // Smoke: three pooled clouds, each ten soft grey spheres that swell and drift.
   const SMOKE_CLOUDS = 3;
   const SMOKE_PUFFS = 10;
   const smokeGroups = [];
@@ -68,7 +64,6 @@ export function createEffects(scene) {
   }
   let smokeNext = 0;
 
-  // Flashbang burst: a white sphere and a hard light, gone in a blink.
   const flashMesh = new THREE.Mesh(
     new THREE.SphereGeometry(1, 16, 12),
     new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }),
@@ -79,7 +74,6 @@ export function createEffects(scene) {
   scene.add(flashLight);
   let flashLife = 0;
 
-  // Impact decals: dark scorch blotches pooled on walls where bullets land.
   const blotchCanvas = document.createElement('canvas');
   blotchCanvas.width = 64;
   blotchCanvas.height = 64;
@@ -104,7 +98,6 @@ export function createEffects(scene) {
   }
   let decalNext = 0;
 
-  // Shell casings: small brass boxes the player's gun ejects, bouncing on the floor.
   const CASING_COUNT = 16;
   const casings = [];
   const casingVel = new Float32Array(CASING_COUNT * 3);
@@ -120,8 +113,6 @@ export function createEffects(scene) {
   }
   let casingNext = 0;
 
-  // Planted charge: a small device with a blinking red light, visible while the
-  // bomb is live so the site reads as armed.
   const bombGroup = new THREE.Group();
   const bombBody = new THREE.Mesh(
     new THREE.BoxGeometry(0.3, 0.12, 0.2),
@@ -210,7 +201,6 @@ export function createEffects(scene) {
     flashLife = 0.25;
   }
 
-  // Scorch decal on the surface a bullet hit, facing out along its normal.
   function decal(point, normal) {
     const d = decals[decalNext];
     decalNext = (decalNext + 1) % DECAL_COUNT;
@@ -221,7 +211,6 @@ export function createEffects(scene) {
     d.life = 8;
   }
 
-  // Eject one casing from the player's gun: right, up and a little back.
   function casing(pos, right) {
     const i = casingNext;
     casingNext = (casingNext + 1) % CASING_COUNT;
@@ -302,14 +291,12 @@ export function createEffects(scene) {
       if (boomLife <= 0) { boomMesh.visible = false; boomLight.intensity = 0; }
     }
     shake = Math.max(0, shake - dt * 1.8);
-    // Decals fade out over their last two seconds.
     for (const d of decals) {
       if (!d.mesh.visible) continue;
       d.life -= dt;
       if (d.life <= 0) { d.mesh.visible = false; continue; }
       d.mesh.material.opacity = d.life < 2 ? 0.85 * (d.life / 2) : 0.85;
     }
-    // Casings arc, bounce once on the floor, then rest and vanish.
     for (let i = 0; i < CASING_COUNT; i += 1) {
       if (casingLife[i] <= 0) continue;
       casingLife[i] -= dt;
@@ -329,7 +316,6 @@ export function createEffects(scene) {
         casingSpin[i] *= 0.5;
       }
     }
-    // Planted charge blinks: hard red pulse, twice a second.
     if (bombGroup.visible) {
       bombTime += dt;
       const on = Math.sin(bombTime * 12) > 0;

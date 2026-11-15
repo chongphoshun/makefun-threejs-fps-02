@@ -30,8 +30,6 @@ export function createMover(colliders, opts = {}) {
   const probe = new THREE.Box3();
   const wish = new THREE.Vector3();
 
-  // lift keeps the feet and the crown out of the horizontal tests, so standing on the
-  // floor is not read as walking into a wall.
   function overlaps(x, y, z, height, lift) {
     probe.min.set(x - radius, y + lift, z - radius);
     probe.max.set(x + radius, y + height - lift, z + radius);
@@ -49,8 +47,6 @@ export function createMover(colliders, opts = {}) {
     body.yaw += yawKick;
   }
 
-  // wishX/wishZ is a world-space wish direction (already normalised or zero); speed is the
-  // target speed; jump and crouch are booleans for this step.
   function step(dt, wishX, wishZ, speed, jump, crouch) {
     if (crouch && !body.crouching) {
       body.crouching = true;

@@ -55,7 +55,6 @@ export function createInput(canvas, onLockChange) {
       state.lookY = 0;
       return { x, y };
     },
-    // True once per physical press, then consumed until the next press.
     takePressed(code) {
       if (!pressed.has(code)) return false;
       pressed.delete(code);

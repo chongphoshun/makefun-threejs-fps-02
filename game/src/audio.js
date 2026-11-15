@@ -58,7 +58,6 @@ export function createAudio() {
     osc.stop(t + dur + 0.02);
   }
 
-  // distance 0..1 attenuates a far-away shot; kind picks the weapon's voice.
   function shot(kind, distance = 0) {
     const vol = Math.max(0.05, 1 - distance * 0.85);
     if (kind === 'sniper') {

@@ -38,15 +38,20 @@ $500 loss-streak bonus (max 2). First to 13 rounds, or the higher score after ro
 ## Where the judge's five criteria live
 
 1. **Complete game** — FPS view, HUD, rounds, bots that shoot back:
-   `game/src/main.js`, `game/src/game.js`
+   `game/src/loop.js` (60 Hz step + frame), `game/src/rounds.js` (round flow),
+   `game/src/game.js` (match state)
 2. **Gunplay** — head/body/leg hitboxes, recoil spray, spread, crouch:
-   `game/src/weapons.js`, `game/src/move.js`
+   `game/src/combat.js` (trigger + hit resolution), `game/src/weapons.js` (arsenal),
+   `game/src/move.js` (mover)
 3. **Tactics** — plant/defuse, buy menu, grenades, 5v5 bots on routes:
-   `game/src/bots.js`, `game/src/game.js`
+   `game/src/bomb.js` (plant/defuse), `game/src/grenade.js` (grenades),
+   `game/src/economy.js` (shop), `game/src/nav.js` (bot pathing),
+   `game/src/hearing.js` (gunshot + footstep awareness), `game/src/bots.js` (5v5 AI)
 4. **Map and look** — Cinder Yard, canvas textures, dusk light:
    `game/src/world.js`, `game/src/textures.js`
 5. **Code** — one module per job, fixed 60 Hz step, pooled effects:
-   `game/src/effects.js`, `game/src/main.js`
+   `game/src/main.js` is boot + wiring only (235 lines), `game/src/loop.js` (fixed step),
+   `game/src/effects.js` (pooled tracers/sparks/casings)
 
 ## Screenshots
 

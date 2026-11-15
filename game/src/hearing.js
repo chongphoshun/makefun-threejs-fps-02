@@ -11,7 +11,6 @@ export function createHearing() {
     if (noises.length > 40) noises.shift();
   }
 
-  // The noise this bot hears right now, or null.
   function heard(bot, pos, now) {
     for (const noise of noises) {
       if (now - noise.time > 1.2 || now - bot.hearAt < 4) continue;

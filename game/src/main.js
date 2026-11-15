@@ -55,13 +55,9 @@ scene.background = new THREE.Color(PALETTE.canvas);
 scene.fog = new THREE.Fog(new THREE.Color('#1a120b'), 20, 62);
 const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.05, 160);
 scene.add(camera);
-// Small warm fill light parented to the camera so the dark-metal viewmodel reads
-// with highlights instead of a black silhouette. Visual only.
 const vmLight = new THREE.PointLight(new THREE.Color('#ffe0b8'), 4, 3);
 vmLight.position.set(0.2, 0.1, -0.4);
 camera.add(vmLight);
-// Cool rim light from the other side so the weapon's shape reads, not just its
-// lit face. Visual only.
 const vmRim = new THREE.PointLight(new THREE.Color('#8fb4ff'), 2, 2);
 vmRim.position.set(-0.3, 0.2, -0.3);
 camera.add(vmRim);
@@ -112,10 +108,7 @@ const playerMover = createMover(world.colliders, { x: 0, z: 15.5, yaw: 0 });
 
 let loop; // Built after the rounds module; modules above call it through closures.
 const stats = { shots: 0, hits: 0, headshots: 0, kills: 0, deaths: 0 };
-const roundKills = []; // Kill positions this round, for the round-report replay map.
 
-// The player as a combatant, so bots can see and shoot them with the same code they
-// use on each other. pos is the mover's own vector: always current, never copied.
 const player = {
   isPlayer: true, name: 'You', team: 'ember',
   pos: playerMover.state.position, alive: true, health: 100,
@@ -136,7 +129,6 @@ const hooks = {
     if (combatant.isPlayer) rounds.hurtPlayer(amount, attacker, isHead);
     else {
       bots.damage(combatant, amount, isHead, attacker);
-      // Blood puff at the chest of the bot that was hit.
       const p = combatant.mover.state.position;
       effects.burst(new THREE.Vector3(p.x, p.y + 1.1, p.z), new THREE.Vector3(0, 1, 0), 7, 0xd92010);
     }
@@ -147,9 +139,6 @@ const hooks = {
   onKill(attacker, victim, isHead) {
     const killerName = attacker.isPlayer ? 'You' : attacker.name;
     hud.killfeed(killerName, victim.name, isHead, attacker.team);
-    const victimPos = victim.isPlayer ? victim.pos : victim.mover.state.position;
-    roundKills.push({ x: victimPos.x, z: victimPos.z, team: attacker.team, killer: killerName });
-    if (roundKills.length > 24) roundKills.shift();
     if (attacker.isPlayer) {
       economy.killReward();
       stats.kills += 1;
@@ -174,7 +163,7 @@ const rounds = createRounds({
   getPlayer: () => player,
   getPlayerMover: () => playerMover,
   getBots: () => bots,
-  stats, roundKills,
+  stats,
   closeBuy: () => loop.closeBuy(),
 });
 loop = createLoop({
@@ -194,7 +183,6 @@ function onLockChange(locked) {
     hud.hideOverlay();
     audio.unlock();
   } else if (game.state.phase === 'matchEnd') {
-    // The end overlay stays up; the play button restarts the match.
   } else if (!player.alive) {
     hud.showOverlay('dead');
   } else if (game.state.phase !== 'menu') {
@@ -217,7 +205,6 @@ hud.onPlay(() => {
     hud.banner('ROUND 1', 'Plant the charge at A or B', 2600);
     input.requestLock();
   } else if (!player.alive) {
-    // Dead: nothing to resume until the round ends.
   } else {
     input.requestLock();
   }

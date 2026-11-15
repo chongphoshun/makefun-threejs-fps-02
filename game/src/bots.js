@@ -16,7 +16,6 @@ const BOT_RATE = { rifle: 0.12, smg: 0.09 };
 const REACT = { ember: 0.22, ash: 0.3 };
 
 function raySphere(origin, dir, center, radius) {
-  // Closest approach of the ray to the sphere centre; a hit when it passes inside.
   const ox = center.x - origin.x;
   const oy = center.y - origin.y;
   const oz = center.z - origin.z;
@@ -60,7 +59,6 @@ export function createBots(scene, world, hooks) {
   function buildModel(bot) {
     const group = new THREE.Group();
     const mat = teamMat[bot.team];
-    // Per-bot torso material so a hit flash lights up only the bot that was shot.
     const torsoMat = mat.clone();
     const legL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.52, 0.16), darkMat);
     legL.position.set(-0.11, 0.26, 0);
@@ -68,9 +66,6 @@ export function createBots(scene, world, hooks) {
     const legR = legL.clone();
     legR.position.x = 0.11;
     legR.userData = { bot, part: 'leg' };
-    // Boots ride on the legs, so they swing with the walk. Children of the leg
-    // meshes are not raycast (shootables are tested non-recursively), so the
-    // hitbox stays the leg box.
     for (const leg of [legL, legR]) {
       const boot = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.12, 0.28), darkMat);
       boot.position.set(0, -0.22, 0.04);
@@ -79,12 +74,10 @@ export function createBots(scene, world, hooks) {
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.62, 0.3), torsoMat);
     torso.position.y = 1.06;
     torso.userData = { bot, part: 'torso' };
-    // Vest: team-coloured armour plates over the torso, dark chest rig on top.
     const vest = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.42, 0.34), mat);
     vest.position.y = 1.1;
     const rig = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.06), darkMat);
     rig.position.set(0, 1.08, -0.19);
-    // Backpack with a bedroll on top, so the silhouette reads from behind too.
     const pack = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.18), darkMat);
     pack.position.set(0, 1.1, 0.26);
     const roll = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.2), mat);
@@ -92,13 +85,11 @@ export function createBots(scene, world, hooks) {
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), skinMat);
     head.position.y = 1.56;
     head.userData = { bot, part: 'head' };
-    // Helmet: a dome over the head plus a dark visor strip at the front.
     const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), mat);
     helmet.scale.set(1, 0.65, 1.1);
     helmet.position.y = 1.66;
     const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.04), darkMat);
     visor.position.set(0, 1.6, -0.15);
-    // Arms: dark sleeves angled forward, holding the gun.
     const armL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.5, 0.13), darkMat);
     armL.position.set(-0.33, 1.12, -0.08);
     armL.rotation.x = -0.5;
@@ -141,8 +132,6 @@ export function createBots(scene, world, hooks) {
     return combatant.isPlayer ? combatant.pos : combatant.mover.state.position;
   }
 
-  // Line of sight from a bot's eyes to a combatant's chest, through the world only —
-  // and through no smoke cloud: a cloud between the two breaks the line.
   function canSee(bot, combatant) {
     const from = tmpEye.set(bodyOf(bot).x, bodyOf(bot).y + 1.5, bodyOf(bot).z);
     const to = tmpChest.set(bodyOf(combatant).x, bodyOf(combatant).y + 1.05, bodyOf(combatant).z);
@@ -173,8 +162,6 @@ export function createBots(scene, world, hooks) {
     return err;
   }
 
-  // One bot shot at a combatant: an errored ray, a wall check, then a ray-sphere test
-  // against the body (r 0.42) and the head (r 0.2). Returns the end point for the tracer.
   function botShoot(bot, combatant, now) {
     const muzzle = tmpMuzzle.set(bodyOf(bot).x, bodyOf(bot).y + 1.35, bodyOf(bot).z);
     const chest = tmpChest.set(bodyOf(combatant).x, bodyOf(combatant).y + 1.05, bodyOf(combatant).z);
@@ -228,8 +215,6 @@ export function createBots(scene, world, hooks) {
       bot.alive = false;
       bot.state = 'dead';
       bot.fallT = 0;
-      // Ragdoll-style fall: a random direction each time — backwards, forwards,
-      // or sideways — so dead bots do not all fold the same way.
       bot.fallDir = Math.random() < 0.5 ? 1 : -1;
       bot.fallAxis = Math.random() < 0.6 ? 'x' : 'z';
       bot.target = null;
@@ -237,7 +222,6 @@ export function createBots(scene, world, hooks) {
       const mate = bots.find((b) => b.team === bot.team && b.alive && b !== bot);
       if (mate && hooks.radio) hooks.radio(mate.name, `Man down — ${areaName(bot.mover.state.position.x, bot.mover.state.position.z)}`, bot.team);
     } else if (attacker) {
-      // Being shot at is information: turn toward the shooter and remember them.
       bot.lastSeen.set(bodyOf(attacker).x, bodyOf(attacker).y, bodyOf(attacker).z);
       bot.lastSeenTime = hooks.now();
       if (bot.state !== 'engage') bot.state = 'investigate';
@@ -286,7 +270,6 @@ export function createBots(scene, world, hooks) {
     spotted.clear();
   }
 
-  // One think tick per bot, staggered so the nine bots never all raycast on one frame.
   function think(bot, ctx) {
     const now = ctx.now;
     const pos = bot.mover.state.position;
@@ -337,8 +320,6 @@ export function createBots(scene, world, hooks) {
         setPath(bot, world.nav.routeThrough(world.nearestNode(pos.x, pos.z), [world.nearestNode(bot.lastSeen.x, bot.lastSeen.z)]), 'advance');
       }
     }
-    // Hearing: a recent noise nearby pulls a bot that is not already fighting.
-    // (Gunshots pull anyone; footsteps only betray the enemy team — see hearing.js.)
     if (bot.state !== 'engage' && ctx.hearing) {
       const noise = ctx.hearing.heard(bot, pos, now);
       if (noise) {
@@ -349,7 +330,6 @@ export function createBots(scene, world, hooks) {
         setPath(bot, world.nav.routeThrough(world.nearestNode(pos.x, pos.z), [world.nearestNode(noise.x, noise.z)]), 'advance');
       }
     }
-    // After the plant, defenders converge on the site; attackers fall back to hold it.
     if (ctx.plantedSite && bot.state !== 'engage' && bot.state !== 'dead') {
       const siteNode = ctx.plantedSite === 'A' ? 20 : 21;
       if (bot.team === 'ash') {
@@ -372,7 +352,6 @@ export function createBots(scene, world, hooks) {
     if (!bot.alive) {
       if (bot.fallT < 1) {
         bot.fallT = Math.min(1, bot.fallT + dt / 0.4);
-        // Fall around the chosen axis with a small overshoot settle, arms flailing out.
         const a = -bot.fallT * 1.45 * bot.fallDir;
         if (bot.fallAxis === 'x') { bot.parts.group.rotation.x = a; bot.parts.group.rotation.z = 0; }
         else { bot.parts.group.rotation.z = a; bot.parts.group.rotation.x = 0; }
@@ -386,7 +365,6 @@ export function createBots(scene, world, hooks) {
       bot.thinkAt = now;
       think(bot, ctx);
     }
-    // Flashbang blindness: no aiming, no shooting, no thinking about targets.
     if (now < bot.blindUntil) {
       bot.target = null;
       bot.state = 'hold';
@@ -400,7 +378,6 @@ export function createBots(scene, world, hooks) {
     let wantYaw = body.yaw;
 
     if (ctx.phase === 'live' && bot.state === 'defuse') {
-      // Channelling a defuse: stand still in the site, progress unless interrupted.
       bot.defuseT += dt;
       hooks.onDefuseProgress(bot, bot.defuseT);
       if (bot.defuseT >= 5) hooks.onDefused(bot);
@@ -410,7 +387,6 @@ export function createBots(scene, world, hooks) {
       const dx = targetPos.x - pos.x;
       const dz = targetPos.z - pos.z;
       wantYaw = Math.atan2(-dx, -dz);
-      // Strafe sideways while fighting, switching direction every second or so.
       if (now > bot.strafeUntil) {
         bot.strafeDir = Math.random() < 0.5 ? -1 : 1;
         bot.strafeUntil = now + 0.7 + Math.random() * 0.7;
@@ -455,7 +431,6 @@ export function createBots(scene, world, hooks) {
         wantYaw = Math.atan2(-dx, -dz);
       }
     } else {
-      // Holding: slow scan across the lane.
       bot.scanPhase += dt * 0.5;
       wantYaw = body.yaw + Math.sin(bot.scanPhase) * 0.004;
       if (bot.role === 'roam' && ctx.phase === 'live' && Math.random() < dt * 0.08) {
@@ -465,13 +440,11 @@ export function createBots(scene, world, hooks) {
       }
     }
 
-    // Turn toward the wanted yaw at a limited rate, then move.
     let dyaw = wantYaw - body.yaw;
     dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
     body.yaw += Math.max(-3.2 * dt, Math.min(3.2 * dt, dyaw));
     const crouch = false;
     mover.step(dt, wishX, wishZ, speed, false, crouch);
-    // Footsteps: a moving bot is audible to nearby enemies (hearing.js).
     if (ctx.hearing && mover.groundSpeed() > 3 && now - bot.stepAt > 0.6) {
       ctx.hearing.addNoise(pos.x, pos.z, now, 7, 'step', bot.team);
       bot.stepAt = now;
@@ -480,8 +453,6 @@ export function createBots(scene, world, hooks) {
     const swing = Math.min(1, mover.groundSpeed() / 4) * 0.5;
     bot.parts.legL.rotation.x = Math.sin(bot.walkPhase) * swing;
     bot.parts.legR.rotation.x = -Math.sin(bot.walkPhase) * swing;
-    // Poses: engaging aims both arms forward at the target; running leans the
-    // body forward; standing still breathes.
     const aiming = bot.state === 'engage' && bot.target ? 1 : 0;
     bot.aimBlend += (aiming - bot.aimBlend) * Math.min(1, dt * 8);
     const armBase = -0.5 - bot.aimBlend * 0.65;
@@ -490,7 +461,6 @@ export function createBots(scene, world, hooks) {
     bot.parts.group.rotation.x = swing * 0.18;
     if (mover.groundSpeed() < 0.5) bot.parts.torso.scale.y = 1 + Math.sin(now * 2 + bot.walkPhase) * 0.012;
     else bot.parts.torso.scale.y = 1;
-    // Hit flash decay: torso glows red, fading over ~0.3 s.
     if (bot.flashT > 0) {
       bot.flashT = Math.max(0, bot.flashT - dt * 3.5);
       bot.parts.torsoMat.emissive.setHex(0xff2a1a);

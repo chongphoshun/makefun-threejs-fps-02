@@ -14,8 +14,6 @@ export function createEconomy({ game, weapons, hud, audio }) {
     for (const item of [...WEAPON_ORDER, 'armor', 'helmet']) hud.buyAfford(item, game.state.money);
   }
 
-  // A buy only lands during the freeze; a failed spend clicks dry, a good one clicks
-  // and refreshes the money, the ammo readout and every item's afford state.
   function tryBuy(id) {
     if (game.state.phase !== 'freeze') return;
     if (!game.spend(priceOf(id))) { audio.dry(); return; }

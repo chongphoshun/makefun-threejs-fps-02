@@ -57,7 +57,6 @@ export function createNav(nodes = NODES, edges = EDGES) {
     return [from];
   }
 
-  // A route through several waypoints: BFS each leg, stitch the legs together.
   function routeThrough(fromNode, via) {
     let path = [fromNode];
     let cur = fromNode;

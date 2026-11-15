@@ -43,7 +43,6 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
     const phase = game.state.phase;
     const keys = input.state.keys;
 
-    // Movement wish from the keys, relative to the yaw.
     const forward = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0);
     const strafe = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
     const sin = Math.sin(playerBody.yaw);
@@ -67,13 +66,11 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
     player.crouching = playerBody.crouching;
     player.speed = playerMover.groundSpeed();
 
-    // Footsteps: a moving player is audible to nearby enemies (hearing.js).
     if (player.alive && playerMover.groundSpeed() > 3 && simTime - lastPlayerStep > 0.6) {
       hearing.addNoise(playerBody.position.x, playerBody.position.z, simTime, 7, 'step', 'ember');
       lastPlayerStep = simTime;
     }
 
-    // ADS: right mouse narrows the field of view and tightens the spread.
     weapons.state.aiming = input.state.aiming && player.alive;
     const targetFov = weapons.state.aiming ? (weapons.state.current === 'sniper' ? 42 : 58) : 74;
     if (Math.abs(camera.fov - targetFov) > 0.2) {
@@ -85,13 +82,11 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
     effects.step(dt);
     grenades.step(dt);
 
-    // Bots run their own simulation every step.
     bots.step(dt, {
       now: simTime, phase, player, hearing, smokes: grenades.smokes,
       plantedSite: game.state.planted ? game.state.planted.site : null,
     });
 
-    // The match clock and its events.
     const event = game.tick(dt);
     if (event) {
       if (event.event === 'live') {
@@ -112,16 +107,13 @@ export function createLoop({ scene, camera, renderer, world, effects, audio, hud
       }
     }
 
-    // Plant / defuse channels: hold E inside the right zone (bomb.js).
     bomb.step(dt, keys, phase);
 
-    // Per-site colour grade: warm on A, cool on B, warm spawn, neutral in mid.
     const inA = world.inSite(playerBody.position.x, playerBody.position.z, 'A');
     const inB = world.inSite(playerBody.position.x, playerBody.position.z, 'B');
     const zone = inA ? 'A' : inB ? 'B' : playerBody.position.z > 12 ? 'spawn' : 'mid';
     hud.setGrade(zone);
 
-    // HUD numbers, every step (the setters skip unchanged values).
     hud.setHealth(Math.max(0, player.health), weapons.state.armor);
     const slot = weapons.ammo[weapons.state.current];
     hud.setAmmo(slot.mag, slot.reserve, WEAPONS[weapons.state.current].name.toUpperCase());

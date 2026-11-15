@@ -30,7 +30,6 @@ const TAN = new THREE.MeshStandardMaterial({ color: new THREE.Color('#8a6f4d'), 
 const POLY = new THREE.MeshStandardMaterial({ color: new THREE.Color('#1e1c1a'), roughness: 0.85, metalness: 0.05 });
 const GLOVE = new THREE.MeshStandardMaterial({ color: new THREE.Color('#241a12'), roughness: 0.95, metalness: 0 });
 
-// Muzzle-flash sprite: a radial glow with four spikes, drawn once on a canvas.
 function flashTexture() {
   const c = document.createElement('canvas');
   c.width = 128;
@@ -65,8 +64,6 @@ function part(w, h, d, x, y, z, mat, rx = 0, rz = 0) {
   return mesh;
 }
 
-// Gloved hands holding the gun: one on the grip, one on the handguard or pump.
-// They are children of the model, so reload and ADS motion carries them along.
 function hands(model, gx, gy, gz, sx, sy, sz) {
   const grip = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.11, 0.09), GLOVE);
   grip.position.set(gx, gy, gz);
@@ -77,10 +74,6 @@ function hands(model, gx, gy, gz, sx, sy, sz) {
   model.add(grip, support);
 }
 
-// One view model per weapon, built from 10+ primitives: receiver, barrel, shroud,
-// handguard, magazine, stock, optic, grip, muzzle, rail. Two-tone gunmetal + tan /
-// polymer + an ember accent, so the gun reads as a built object, not a grey box.
-// The magazine mesh is kept on userData.mag: the reload animation drops it out.
 function buildModel(id) {
   const model = new THREE.Group();
   let mag = null;
@@ -138,12 +131,10 @@ function buildModel(id) {
       part(0.012, 0.03, 0.012, 0, 0.06, -0.52, EMBER), part(0.09, 0.03, 0.2, 0, 0.055, -0.36, GREY),
       part(0.1, 0.02, 0.1, 0, 0.06, -0.05, TAN),
     );
-    // Pump-action: the pump is the moving part of the reload, not a magazine.
     mag = part(0.08, 0.09, 0.16, 0, -0.02, -0.32, TAN);
     model.add(mag);
     hands(model, 0, -0.1, 0.06, 0, -0.06, -0.32);
   } else {
-    // Grenade canisters: HE orange, smoke grey, flash white, plus lever and band.
     const mat = id === 'he' ? EMBER : id === 'smoke' ? GREY : WHITE;
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 12), mat);
     body.rotation.x = Math.PI / 2;
@@ -199,7 +190,6 @@ export function createWeapons(camera) {
     state.flash = Math.max(0, state.flash - dt);
     state.kick += (0 - state.kick) * Math.min(1, dt * 14);
     const model = models[state.current];
-    // ADS pulls the gun a touch closer to the eye as well as to the centre.
     model.position.z = -0.48 + state.kick - (state.aiming && WEAPONS[state.current].kind !== 'grenade' ? 0.06 : 0);
     model.rotation.x = state.kick * 2.2;
     if (state.aiming && WEAPONS[state.current].kind !== 'grenade') {
@@ -215,8 +205,6 @@ export function createWeapons(camera) {
     const def = WEAPONS[state.current];
     if (state.reloadLeft > 0) {
       state.reloadLeft = Math.max(0, state.reloadLeft - dt);
-      // Reload animation: the gun tilts out and dips, the magazine drops out and
-      // slides back in (the shotgun's pump racks instead). Sine curve, out and back.
       const p = 1 - state.reloadLeft / def.reloadTime;
       const s = Math.sin(p * Math.PI);
       model.rotation.x = -0.55 * s;
@@ -279,7 +267,6 @@ export function createWeapons(camera) {
       models[id].visible = true;
       return true;
     },
-    // Cycle to the next owned grenade type (G key).
     nextGrenade() {
       const owned = GRENADE_ORDER.filter((id) => state.grenades[id] > 0);
       if (owned.length === 0) return false;
@@ -288,8 +275,6 @@ export function createWeapons(camera) {
       return this.switchTo(next);
     },
     refill() {
-      // A new round refills every magazine you own. Grenades, armour and helmet carry
-      // over; only death takes them away (see resetLoadout).
       for (const id of WEAPON_ORDER) {
         ammo[id] = state.owned.has(id)
           ? { mag: WEAPONS[id].mag, reserve: WEAPONS[id].reserve }
@@ -301,7 +286,6 @@ export function createWeapons(camera) {
       state.flash = 0;
       state.kick = 0;
     },
-    // Death loses everything but the sidearm.
     resetLoadout() {
       state.owned = new Set(['pistol']);
       state.grenades = { he: 0, smoke: 0, flash: 0 };

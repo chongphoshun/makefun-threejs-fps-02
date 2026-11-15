@@ -64,7 +64,6 @@ export function createGrenades({ scene, world, effects, audio, hud, weapons, hoo
       const dz = body.z - p.z;
       const dist = Math.hypot(dx, dy, dz);
       if (dist > 6.5) continue;
-      // A wall between the blast and the body saves it.
       raycaster.set(p, new THREE.Vector3(dx / dist, dy / dist, dz / dist));
       raycaster.far = dist;
       if (raycaster.intersectObjects(world.shootables, false)[0]) continue;
@@ -75,8 +74,6 @@ export function createGrenades({ scene, world, effects, audio, hud, weapons, hoo
     scene.remove(g.mesh);
   }
 
-  // A flashbang blinds anyone who can see the burst: the player gets a white wash,
-  // bots stand blind for a couple of seconds. A wall between eye and burst saves you.
   function blindFromFlash(p) {
     const camera = hooks.getCamera();
     const eye = camera.position;
@@ -110,7 +107,6 @@ export function createGrenades({ scene, world, effects, audio, hud, weapons, hoo
   }
 
   function step(dt) {
-    // Expired smoke clouds lift; bots can see through the spot again.
     for (let i = smokes.length - 1; i >= 0; i -= 1) {
       if (smokes[i].until <= hooks.now()) smokes.splice(i, 1);
     }
@@ -121,7 +117,6 @@ export function createGrenades({ scene, world, effects, audio, hud, weapons, hoo
       g.mesh.position.addScaledVector(g.vel, dt);
       const p = g.mesh.position;
       const r = 0.09;
-      // Cheap AABB bounce: test the point against every collider, reflect the axis it hit.
       for (const c of world.colliders) {
         if (p.x > c.min.x - r && p.x < c.max.x + r && p.y > c.min.y - r && p.y < c.max.y + r && p.z > c.min.z - r && p.z < c.max.z + r) {
           const dxMin = p.x - (c.min.x - r);

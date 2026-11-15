@@ -58,8 +58,6 @@ export function createHud(world) {
   const minimap = $('minimap');
   const mapCtx = minimap.getContext('2d');
   const gradeEl = $('grade');
-  const replayMap = $('replay-map');
-  const replayCtx = replayMap.getContext('2d');
   const mvpEl = $('score-mvp');
 
   let hitTimer = 0;
@@ -173,7 +171,6 @@ export function createHud(world) {
       setTimeout(() => row.classList.add('fade'), 4200);
       setTimeout(() => row.remove(), 5000);
     },
-    // Radio callouts: short voice lines from the team, same feed style as the killfeed.
     radio(name, text, team = 'ember', sticky = false) {
       const row = document.createElement('div');
       row.className = 'radio-row';
@@ -184,7 +181,6 @@ export function createHud(world) {
       setTimeout(() => row.classList.add('fade'), 5200);
       setTimeout(() => row.remove(), 6000);
     },
-    // Flashbang blindness: a white wash that fades back out.
     flashBlind(strength) {
       flashOverlay.style.transition = 'none';
       flashOverlay.style.opacity = String(Math.max(0, Math.min(1, strength)));
@@ -195,8 +191,6 @@ export function createHud(world) {
     showScoreboard(data) {
       scoreTitle.textContent = data.title;
       scoreSub.textContent = data.sub;
-      // MVP: most kills, headshots break the tie. The row and the line below the
-      // replay map both call it out.
       let mvp = null;
       for (const row of data.rows) {
         if (!mvp || row.k > mvp.k || (row.k === mvp.k && row.hs > mvp.hs)) mvp = row;
@@ -210,63 +204,14 @@ export function createHud(world) {
       scoreTable.innerHTML = html;
       scoreLog.innerHTML = data.log.map((line) => `<div>${line}</div>`).join('');
       mvpEl.textContent = mvp ? `★ MVP — ${mvp.name} · ${mvp.k} kills · ${mvp.hs} headshots` : '';
-      this.drawReplayMap(data.kills || [], data.plantSite || null);
       scoreboard.hidden = false;
     },
-    // Per-site colour grade: warm on A, cool on B, neutral in mid.
     setGrade(zone) {
       if (zone === lastGrade) return;
       lastGrade = zone;
       gradeEl.style.background = zone === 'A' ? 'rgba(255,122,26,0.10)'
         : zone === 'B' ? 'rgba(46,143,134,0.12)'
         : zone === 'spawn' ? 'rgba(255,122,26,0.06)' : 'rgba(120,120,120,0.05)';
-    },
-    // Top-down replay of the round: kill dots (orange Ember, blue Ash, white ring
-    // on the player's kills) and a red diamond where the charge went down.
-    drawReplayMap(kills, plantSite) {
-      const ctx = replayCtx;
-      const W = replayMap.width;
-      const H = replayMap.height;
-      const sx = W / 46;
-      const sz = H / 38;
-      const px = (x) => (x + 23) * sx;
-      const pz = (z) => (z + 19) * sz;
-      ctx.fillStyle = '#141009';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#3a2c1c';
-      for (const f of world.footprints) {
-        if (f.w * f.d < 0.5) continue;
-        ctx.fillRect(px(f.x - f.w / 2), pz(f.z - f.d / 2), f.w * sx, f.d * sz);
-      }
-      ctx.font = 'bold 12px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const sites = world.sites;
-      for (const key of Object.keys(sites)) {
-        const site = sites[key];
-        ctx.fillStyle = key === 'A' ? PALETTE.accent : PALETTE.ash;
-        ctx.fillText(key, px(site.center.x), pz(site.center.z));
-      }
-      if (plantSite) {
-        const site = sites[plantSite];
-        const cx = px(site.center.x);
-        const cy = pz(site.center.z);
-        ctx.fillStyle = '#ff2a1a';
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - 7); ctx.lineTo(cx + 6, cy); ctx.lineTo(cx, cy + 7); ctx.lineTo(cx - 6, cy);
-        ctx.closePath(); ctx.fill();
-      }
-      for (const kill of kills) {
-        const cx = px(kill.x);
-        const cy = pz(kill.z);
-        ctx.fillStyle = kill.team === 'ember' ? PALETTE.accent : PALETTE.ash;
-        ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
-        if (kill.killer === 'You') {
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.stroke();
-        }
-      }
     },
     hideScoreboard() {
       scoreboard.hidden = true;
@@ -360,7 +305,6 @@ export function createHud(world) {
       ctx.font = 'bold 11px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      // Site letters from the world's site table (passed through the world object).
       const sites = world.sites;
       for (const key of Object.keys(sites)) {
         const site = sites[key];
@@ -387,7 +331,6 @@ export function createHud(world) {
         ctx.arc(px(site.center.x), pz(site.center.z), 4.5, 0, Math.PI * 2);
         ctx.fill();
       }
-      // Player arrow.
       const p = player.pos;
       ctx.save();
       ctx.translate(px(p.x), pz(p.z));
