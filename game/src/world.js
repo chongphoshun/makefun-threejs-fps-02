@@ -3,6 +3,7 @@
 // is a collider and a surface a bullet stops on; the waypoint graph is what the bots walk.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
+import { TEXTURES } from './textures.js';
 
 // [width, height, depth, x, y, z, material]
 const BOXES = [
@@ -93,9 +94,12 @@ export function createWorld(scene) {
   const group = new THREE.Group();
   scene.add(group);
   const materials = {};
+  const TEXTURED = { surface: 'floor', wall: 'wall', crate: 'crate', rust: 'rust', teal: 'teal' };
   for (const name of Object.keys(PALETTE)) {
+    const texName = TEXTURED[name];
     materials[name] = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(PALETTE[name]),
+      color: new THREE.Color(texName ? '#ffffff' : PALETTE[name]),
+      map: texName ? TEXTURES[texName] : null,
       roughness: name === 'accent' || name === 'ink' ? 0.55 : 0.92,
       metalness: name === 'rust' || name === 'teal' ? 0.25 : 0.03,
     });
@@ -105,7 +109,15 @@ export function createWorld(scene) {
   const footprints = [];
 
   function box(w, h, d, x, y, z, material) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), materials[material]);
+    // Clone the textured material per box so the repeat follows the box's size
+    // instead of stretching one tile across a 45 m wall.
+    const mat = materials[material].clone();
+    if (mat.map) {
+      mat.map = mat.map.clone();
+      mat.map.repeat.set(Math.max(w, d) / 4, Math.max(h, 1.2) / 4);
+      mat.map.needsUpdate = true;
+    }
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -140,7 +152,7 @@ export function createWorld(scene) {
   }
 
   // Light: a low amber sun, a cool sky fill, and a floodlight over each site.
-  const sky = new THREE.HemisphereLight(new THREE.Color('#ffd9a0'), new THREE.Color('#4a3620'), 1.5);
+  const sky = new THREE.HemisphereLight(new THREE.Color('#ffd9a0'), new THREE.Color('#4a3620'), 1.7);
   scene.add(sky);
   const sun = new THREE.DirectionalLight(new THREE.Color('#ffb36b'), 3.5);
   sun.position.set(14, 18, 12);
