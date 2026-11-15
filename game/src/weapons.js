@@ -26,6 +26,9 @@ const STEEL = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.gu
 const EMBER = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.accent), roughness: 0.5, metalness: 0.3 });
 const GREY = new THREE.MeshStandardMaterial({ color: new THREE.Color('#8a8a8a'), roughness: 0.6, metalness: 0.2 });
 const WHITE = new THREE.MeshStandardMaterial({ color: new THREE.Color('#e8e8e8'), roughness: 0.5, metalness: 0.1 });
+const TAN = new THREE.MeshStandardMaterial({ color: new THREE.Color('#8a6f4d'), roughness: 0.6, metalness: 0.2 });
+const POLY = new THREE.MeshStandardMaterial({ color: new THREE.Color('#1e1c1a'), roughness: 0.85, metalness: 0.05 });
+const GLOVE = new THREE.MeshStandardMaterial({ color: new THREE.Color('#241a12'), roughness: 0.95, metalness: 0 });
 
 // Muzzle-flash sprite: a radial glow with four spikes, drawn once on a canvas.
 function flashTexture() {
@@ -54,38 +57,109 @@ function flashTexture() {
   return tex;
 }
 
-function part(w, h, d, x, y, z, mat) {
+function part(w, h, d, x, y, z, mat, rx = 0, rz = 0) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   mesh.position.set(x, y, z);
+  mesh.rotation.x = rx;
+  mesh.rotation.z = rz;
   return mesh;
 }
 
-// One small view model per weapon, built from boxes. Only the held one is visible.
+// Gloved hands holding the gun: one on the grip, one on the handguard or pump.
+// They are children of the model, so reload and ADS motion carries them along.
+function hands(model, gx, gy, gz, sx, sy, sz) {
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.11, 0.09), GLOVE);
+  grip.position.set(gx, gy, gz);
+  grip.rotation.x = 0.25;
+  const support = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 0.12), GLOVE);
+  support.position.set(sx, sy, sz);
+  support.rotation.x = -0.15;
+  model.add(grip, support);
+}
+
+// One view model per weapon, built from 10+ primitives: receiver, barrel, shroud,
+// handguard, magazine, stock, optic, grip, muzzle, rail. Two-tone gunmetal + tan /
+// polymer + an ember accent, so the gun reads as a built object, not a grey box.
+// The magazine mesh is kept on userData.mag: the reload animation drops it out.
 function buildModel(id) {
   const model = new THREE.Group();
+  let mag = null;
   if (id === 'pistol') {
-    model.add(part(0.06, 0.09, 0.24, 0, 0, -0.1, STEEL), part(0.05, 0.12, 0.07, 0, -0.08, 0.02, GRIP));
+    model.add(
+      part(0.06, 0.05, 0.26, 0, 0.02, -0.1, STEEL), part(0.055, 0.05, 0.24, 0, -0.03, -0.08, POLY),
+      part(0.03, 0.03, 0.05, 0, 0.02, -0.25, GREY), part(0.05, 0.13, 0.07, 0, -0.09, 0.03, POLY, 0.25),
+      part(0.04, 0.02, 0.08, 0, -0.06, -0.06, POLY), part(0.012, 0.025, 0.012, 0, 0.06, -0.22, EMBER),
+      part(0.04, 0.02, 0.015, 0, 0.055, 0.02, GREY), part(0.062, 0.02, 0.04, 0, 0.02, 0, GREY),
+      part(0.062, 0.008, 0.2, 0, 0.045, -0.1, EMBER),
+    );
+    mag = part(0.05, 0.02, 0.07, 0, -0.16, 0.04, EMBER);
+    model.add(mag);
+    hands(model, 0, -0.09, 0.03, 0, -0.055, -0.14);
   } else if (id === 'smg') {
-    model.add(part(0.08, 0.09, 0.4, 0, 0, -0.08, STEEL), part(0.04, 0.04, 0.3, 0, 0.02, -0.36, GRIP),
-      part(0.06, 0.14, 0.06, 0, -0.1, 0.02, GRIP), part(0.05, 0.04, 0.1, 0, 0.05, -0.26, EMBER));
+    model.add(
+      part(0.08, 0.09, 0.34, 0, 0, -0.06, STEEL), part(0.035, 0.035, 0.18, 0, 0.01, -0.32, GREY),
+      part(0.07, 0.07, 0.2, 0, 0.01, -0.28, POLY), part(0.06, 0.05, 0.14, 0, -0.01, -0.2, TAN),
+      part(0.06, 0.07, 0.16, 0, -0.01, 0.2, POLY), part(0.05, 0.12, 0.07, 0, -0.09, 0.06, POLY, 0.25),
+      part(0.04, 0.04, 0.1, 0, 0.07, -0.1, EMBER), part(0.05, 0.1, 0.05, 0, -0.08, -0.2, POLY),
+      part(0.045, 0.045, 0.06, 0, 0.01, -0.42, GREY), part(0.07, 0.015, 0.3, 0, 0.055, -0.08, GREY),
+    );
+    mag = part(0.05, 0.16, 0.06, 0, -0.12, 0, POLY);
+    model.add(mag);
+    hands(model, 0, -0.09, 0.06, 0, -0.07, -0.2);
   } else if (id === 'rifle') {
-    model.add(part(0.09, 0.1, 0.42, 0, 0, -0.05, STEEL), part(0.045, 0.045, 0.4, 0, 0.025, -0.42, GRIP),
-      part(0.075, 0.08, 0.22, 0, -0.02, 0.26, GRIP), part(0.06, 0.12, 0.08, 0, -0.1, 0.05, GRIP),
-      part(0.03, 0.05, 0.06, 0, 0.07, -0.2, EMBER));
+    model.add(
+      part(0.09, 0.1, 0.4, 0, 0, -0.04, STEEL), part(0.04, 0.04, 0.24, 0, 0.02, -0.36, GREY),
+      part(0.08, 0.08, 0.3, 0, 0.01, -0.3, TAN), part(0.07, 0.09, 0.2, 0, -0.01, 0.24, POLY),
+      part(0.05, 0.12, 0.07, 0, -0.1, 0.06, POLY, 0.25), part(0.05, 0.05, 0.14, 0, 0.075, -0.12, EMBER),
+      part(0.012, 0.04, 0.012, 0, 0.06, -0.44, EMBER), part(0.05, 0.05, 0.08, 0, 0.02, -0.5, GREY),
+      part(0.08, 0.015, 0.34, 0, 0.06, -0.06, GREY), part(0.05, 0.09, 0.05, 0, -0.07, -0.28, POLY),
+      part(0.1, 0.02, 0.03, 0, 0.03, 0.14, GREY),
+    );
+    mag = part(0.06, 0.14, 0.08, 0, -0.11, 0.02, POLY, 0.15);
+    model.add(mag);
+    hands(model, 0, -0.1, 0.06, 0, -0.06, -0.28);
   } else if (id === 'sniper') {
-    model.add(part(0.07, 0.09, 0.62, 0, 0, -0.12, STEEL), part(0.04, 0.04, 0.55, 0, 0.02, -0.55, GRIP),
-      part(0.05, 0.06, 0.16, 0, 0.07, -0.2, EMBER), part(0.06, 0.08, 0.2, 0, -0.02, 0.28, GRIP));
+    model.add(
+      part(0.07, 0.09, 0.5, 0, 0, -0.1, STEEL), part(0.035, 0.035, 0.5, 0, 0.015, -0.55, GREY),
+      part(0.05, 0.05, 0.2, 0, 0.09, -0.12, EMBER), part(0.04, 0.03, 0.12, 0, 0.055, -0.12, GREY),
+      part(0.055, 0.055, 0.02, 0, 0.09, -0.23, POLY), part(0.02, 0.02, 0.1, 0.06, 0.02, -0.02, GREY),
+      part(0.06, 0.08, 0.24, 0, -0.01, 0.26, TAN), part(0.06, 0.03, 0.16, 0, 0.06, 0.2, POLY),
+      part(0.05, 0.11, 0.07, 0, -0.09, 0.06, POLY, 0.25), part(0.04, 0.04, 0.07, 0, 0.015, -0.82, GREY),
+      part(0.065, 0.1, 0.03, 0, -0.01, 0.39, GLOVE),
+    );
+    mag = part(0.05, 0.1, 0.07, 0, -0.1, 0, POLY);
+    model.add(mag);
+    hands(model, 0, -0.09, 0.06, 0, -0.05, -0.35);
   } else if (id === 'shotty') {
-    model.add(part(0.1, 0.11, 0.5, 0, 0, -0.08, STEEL), part(0.05, 0.05, 0.42, 0, -0.05, -0.3, GRIP),
-      part(0.06, 0.12, 0.08, 0, -0.1, 0.05, GRIP), part(0.08, 0.08, 0.12, 0, 0.02, -0.42, EMBER));
+    model.add(
+      part(0.1, 0.11, 0.42, 0, 0, -0.06, STEEL), part(0.045, 0.045, 0.34, 0, 0.02, -0.4, GREY),
+      part(0.04, 0.04, 0.3, 0, -0.05, -0.38, GREY), part(0.05, 0.05, 0.03, 0, -0.05, -0.54, EMBER),
+      part(0.08, 0.1, 0.2, 0, -0.01, 0.24, POLY), part(0.05, 0.12, 0.07, 0, -0.1, 0.06, POLY, 0.25),
+      part(0.012, 0.03, 0.012, 0, 0.06, -0.52, EMBER), part(0.09, 0.03, 0.2, 0, 0.055, -0.36, GREY),
+      part(0.1, 0.02, 0.1, 0, 0.06, -0.05, TAN),
+    );
+    // Pump-action: the pump is the moving part of the reload, not a magazine.
+    mag = part(0.08, 0.09, 0.16, 0, -0.02, -0.32, TAN);
+    model.add(mag);
+    hands(model, 0, -0.1, 0.06, 0, -0.06, -0.32);
   } else {
-    // Grenade canisters: HE orange, smoke grey, flash white.
+    // Grenade canisters: HE orange, smoke grey, flash white, plus lever and band.
     const mat = id === 'he' ? EMBER : id === 'smoke' ? GREY : WHITE;
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 12), mat);
     body.rotation.x = Math.PI / 2;
     const pin = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 8, 16), STEEL);
     pin.position.set(0.05, 0.06, 0);
-    model.add(body, pin);
+    const lever = part(0.015, 0.1, 0.02, -0.045, 0.03, 0, STEEL);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.047, 0.047, 0.02, 12), POLY);
+    band.rotation.x = Math.PI / 2;
+    band.position.z = -0.04;
+    model.add(body, pin, lever, band);
+    hands(model, 0, -0.06, 0.02, 0, -0.05, -0.06);
+  }
+  if (mag) {
+    mag.userData.baseY = mag.position.y;
+    mag.userData.baseRX = mag.rotation.x;
+    model.userData.mag = mag;
   }
   model.position.set(0.22, -0.21, -0.48);
   model.scale.setScalar(0.8);
@@ -125,7 +199,8 @@ export function createWeapons(camera) {
     state.flash = Math.max(0, state.flash - dt);
     state.kick += (0 - state.kick) * Math.min(1, dt * 14);
     const model = models[state.current];
-    model.position.z = -0.48 + state.kick;
+    // ADS pulls the gun a touch closer to the eye as well as to the centre.
+    model.position.z = -0.48 + state.kick - (state.aiming && WEAPONS[state.current].kind !== 'grenade' ? 0.06 : 0);
     model.rotation.x = state.kick * 2.2;
     if (state.aiming && WEAPONS[state.current].kind !== 'grenade') {
       model.position.x += (0.0 - model.position.x) * Math.min(1, dt * 12);
@@ -140,7 +215,17 @@ export function createWeapons(camera) {
     const def = WEAPONS[state.current];
     if (state.reloadLeft > 0) {
       state.reloadLeft = Math.max(0, state.reloadLeft - dt);
-      model.rotation.x = -0.55 * Math.min(1, (def.reloadTime - state.reloadLeft) * 2);
+      // Reload animation: the gun tilts out and dips, the magazine drops out and
+      // slides back in (the shotgun's pump racks instead). Sine curve, out and back.
+      const p = 1 - state.reloadLeft / def.reloadTime;
+      const s = Math.sin(p * Math.PI);
+      model.rotation.x = -0.55 * s;
+      model.position.y -= 0.04 * s;
+      const mag = model.userData.mag;
+      if (mag) {
+        mag.position.y = mag.userData.baseY - 0.13 * s;
+        mag.rotation.x = mag.userData.baseRX + 0.35 * s;
+      }
       if (state.reloadLeft === 0) {
         const slot = ammo[state.current];
         const need = def.mag - slot.mag;
