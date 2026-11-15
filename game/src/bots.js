@@ -125,7 +125,7 @@ export function createBots(scene, world, hooks) {
       strafeDir: 1, strafeUntil: 0, scanPhase: Math.random() * 6,
       defuseT: 0, fallT: 0, flashT: 0, walkPhase: Math.random() * 6, speed: 4.2,
       fallDir: 1, fallAxis: 'x', aimBlend: 0,
-      hearAt: 0, hearPos: new THREE.Vector3(), thinkAt: Math.random() * 0.15,
+      hearAt: 0, stepAt: 0, hearPos: new THREE.Vector3(), thinkAt: Math.random() * 0.15,
     };
     const spawn = SPAWNS[team][index % SPAWNS[team].length];
     bot.mover = createMover(world.colliders, { x: spawn.x, z: spawn.z, yaw: spawn.yaw, walkSpeed: bot.speed });
@@ -471,6 +471,11 @@ export function createBots(scene, world, hooks) {
     body.yaw += Math.max(-3.2 * dt, Math.min(3.2 * dt, dyaw));
     const crouch = false;
     mover.step(dt, wishX, wishZ, speed, false, crouch);
+    // Footsteps: a moving bot is audible to nearby enemies (hearing.js).
+    if (ctx.hearing && mover.groundSpeed() > 3 && now - bot.stepAt > 0.6) {
+      ctx.hearing.addNoise(pos.x, pos.z, now, 7, 'step', bot.team);
+      bot.stepAt = now;
+    }
     bot.walkPhase += mover.groundSpeed() * dt * 2.4;
     const swing = Math.min(1, mover.groundSpeed() / 4) * 0.5;
     bot.parts.legL.rotation.x = Math.sin(bot.walkPhase) * swing;
