@@ -81,6 +81,7 @@ let noises = [];
 const grenades = [];
 const smokes = [];
 const stats = { shots: 0, hits: 0, headshots: 0, kills: 0, deaths: 0 };
+const roundKills = []; // Kill positions this round, for the round-report replay map.
 const direction = new THREE.Vector3();
 const muzzle = new THREE.Vector3();
 const shakeVec = new THREE.Vector3();
@@ -129,6 +130,9 @@ const hooks = {
   onKill(attacker, victim, isHead) {
     const killerName = attacker.isPlayer ? 'You' : attacker.name;
     hud.killfeed(killerName, victim.name, isHead, attacker.team);
+    const victimPos = victim.isPlayer ? victim.pos : victim.mover.state.position;
+    roundKills.push({ x: victimPos.x, z: victimPos.z, team: attacker.team, killer: killerName });
+    if (roundKills.length > 24) roundKills.shift();
     if (attacker.isPlayer) {
       game.addKillMoney();
       hud.setMoney(game.state.money);
@@ -216,6 +220,8 @@ function startRoundSetup() {
   plantProgress = 0;
   defuseProgress = 0;
   grenades.length = 0;
+  roundKills.length = 0;
+  effects.clearBomb();
   hud.setHealth(100, weapons.state.armor);
   hud.setMoney(game.state.money);
   const slot = weapons.ammo[weapons.state.current];
@@ -564,6 +570,10 @@ function step(dt) {
     hud.prompt(null);
   }
 
+  // Per-site colour grade: warm on A, cool on B, warm spawn, neutral in mid.
+  const zone = inA ? 'A' : inB ? 'B' : playerBody.position.z > 12 ? 'spawn' : 'mid';
+  hud.setGrade(zone);
+
   // HUD numbers, every step (the setters skip unchanged values).
   hud.setHealth(Math.max(0, player.health), weapons.state.armor);
   const slot = weapons.ammo[weapons.state.current];
@@ -695,9 +705,10 @@ function runShot(name) {
   game.startMatch();
   startRoundSetup();
   if (name === 'firefight') {
-    // The cover: mid-firefight, not a menu. Two Ash defenders in view, a fresh shot
-    // in the air (muzzle flash + tracer still live at capture), full HUD, killfeed
-    // and radio rows pinned so the virtual-time capture keeps them.
+    // The cover: a wide firefight in the open courtyard, not a corridor. Three Ash
+    // defenders in view, a fresh shot in the air (muzzle flash + tracer still live
+    // at capture), smoke drifting, sparks and a scorch decal on the mid wall,
+    // full HUD, killfeed and radio rows pinned so the virtual-time capture keeps them.
     game.endFreeze();
     game.state.timer = 52;
     game.state.score = { ember: 4, ash: 3 };
@@ -706,34 +717,37 @@ function runShot(name) {
     weapons.buy('rifle');
     game.state.money = 5200;
     weapons.switchTo('rifle');
-    // Staged at A site, not the mid choke: warm orange site, two Ash defenders
-    // in the open strip south of the rust container, both in view.
-    playerBody.position.set(-16, 0, -8.5);
+    // Staged in the courtyard plaza looking north: paving ring and flag to the
+    // left, mid walls and the sunset sky ahead, three defenders in the open.
+    player.health = 74;
+    playerBody.position.set(2, 0, 13);
     settle(30);
-    // Two Ash defenders in the open strip, seen across A site.
-    const enemy = bots.list.find((b) => b.team === 'ash');
-    enemy.mover.teleport(-18, -12.3, -Math.PI / 2);
-    enemy.state = 'hold';
-    enemy.path = [];
-    const second = bots.list.filter((b) => b.team === 'ash')[1];
-    second.mover.teleport(-16.5, -13, -Math.PI / 2);
-    second.state = 'hold';
-    second.path = [];
+    const enemies = bots.list.filter((b) => b.team === 'ash');
+    const spots = [[-5, 5], [1, 3], [5, 6]];
+    for (let i = 0; i < 3; i += 1) {
+      enemies[i].mover.teleport(spots[i][0], spots[i][1], Math.PI);
+      enemies[i].state = 'hold';
+      enemies[i].path = [];
+    }
     settle(10);
-    aimAt(new THREE.Vector3(-18, 1.35, -12.3));
+    aimAt(new THREE.Vector3(1, 1.35, 3));
     shoot(0);
     // One sim step so the muzzle flash sprite and the hit flash on the struck
     // bot actually become visible before the capture freezes the frame.
     step(FIXED_STEP);
-    // Return fire: a blue tracer from the defender back past the camera.
-    effects.tracer(new THREE.Vector3(-18, 1.35, -12.3), new THREE.Vector3(-15, 1.2, -6.5), 0x7fb8ff);
+    // Effects in frame: drifting smoke, sparks and a scorch decal on the mid wall.
+    effects.smokeCloud(new THREE.Vector3(-6, 1, 2));
+    effects.burst(new THREE.Vector3(2.8, 1.5, 0), new THREE.Vector3(-1, 0, 0), 12);
+    effects.decal(new THREE.Vector3(2.79, 1.5, 0.5), new THREE.Vector3(-1, 0, 0));
+    // Return fire: a blue tracer from the middle defender back past the camera.
+    effects.tracer(new THREE.Vector3(1, 1.35, 3), new THREE.Vector3(2.5, 1.2, 11), 0x7fb8ff);
     hud.hitMarker(false, 60000);
     hud.setScore(4, 3, 8);
     hud.setMoney(5200);
     hud.killfeed('Vex', 'Onyx', true, 'ember', true);
     hud.killfeed('You', 'Wren', false, 'ember', true);
-    hud.radio('Rook', 'Contact — A site, two of them', 'ember', true);
-    hud.radio('Vex', 'Holding A, need backup', 'ember', true);
+    hud.radio('Rook', 'Contact — courtyard, three of them', 'ember', true);
+    hud.radio('Vex', 'Holding mid, need backup', 'ember', true);
   } else if (name === 'buy') {
     game.state.money = 6400;
     hud.setMoney(6400);
@@ -741,7 +755,9 @@ function runShot(name) {
     game.state.round = 9;
     playerBody.position.set(0, 0, 16.5);
     settle(20);
-    aimAt(new THREE.Vector3(0, 2.2, -8));
+    // Look up the yard: courtyard paving, beams, signage and the sunset sky
+    // behind the buy menu, not a flat wall.
+    aimAt(new THREE.Vector3(0, 3.5, -18));
     hud.setScore(4, 4, 9);
     hud.showBuy(6400);
     for (const item of [...WEAPON_ORDER, 'armor', 'helmet']) hud.buyAfford(item, 6400);
@@ -766,6 +782,9 @@ function runShot(name) {
     playerBody.position.set(-6, 0, -12);
     settle(10);
     aimAt(new THREE.Vector3(-15.5, 1.3, -12.5));
+    // Smoke drifting over the site and the charge on the ground, lamp blinking.
+    effects.smokeCloud(new THREE.Vector3(-13, 1, -10));
+    effects.plantBomb(SITES.A.center.x, SITES.A.center.z);
     plantProgress = 2;
     hud.setPlant(2 / 3);
     hud.prompt('Hold <b>E</b> to plant the charge');
@@ -809,6 +828,17 @@ function runShot(name) {
         '<b>+$3,250</b> round win &nbsp;·&nbsp; <b>+$300</b> × 4 kills &nbsp;·&nbsp; <b>+$300</b> plant bonus',
         'Loss streak bonus: $0 · Balance: <b>$6,800</b> · Next round: buy up with B',
       ],
+      // The replay map: the push up the west lane to A, kill dots along the way,
+      // the charge diamond on the site.
+      kills: [
+        { x: -16, z: -12, team: 'ember', killer: 'You' },
+        { x: -14, z: -11, team: 'ember', killer: 'You' },
+        { x: -10, z: -8, team: 'ember', killer: 'Vex' },
+        { x: -6, z: -5, team: 'ash', killer: 'Kestrel' },
+        { x: 0, z: 0, team: 'ember', killer: 'You' },
+        { x: -17, z: -13, team: 'ash', killer: 'Rook' },
+      ],
+      plantSite: 'A',
     });
   }
   hud.setAlive((player.alive ? 1 : 0) + bots.aliveCount('ember'), bots.aliveCount('ash'));
