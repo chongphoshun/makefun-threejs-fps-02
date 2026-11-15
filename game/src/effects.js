@@ -195,8 +195,8 @@ export function createEffects(scene) {
       const puff = group.children[i];
       puff.position.set(smokeSeed[o], smokeSeed[o + 1], smokeSeed[o + 2]);
       const b = (c * SMOKE_PUFFS + i) * 2;
-      smokeBase[b] = 2.2 + Math.random() * 1.4;
-      smokeBase[b + 1] = 0.28 + Math.random() * 0.14;
+      smokeBase[b] = 2.4 + Math.random() * 1.4;
+      smokeBase[b + 1] = 0.38 + Math.random() * 0.14;
       puff.scale.setScalar(smokeBase[b]);
       puff.material.opacity = smokeBase[b + 1];
       puff.material.rotation = Math.random() * Math.PI * 2;
