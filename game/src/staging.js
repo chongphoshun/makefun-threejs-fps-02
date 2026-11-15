@@ -99,7 +99,7 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       playerBody.position.set(-2.5, 0, -12);
       settle(10);
       aimAt(new THREE.Vector3(-15.5, 0.6, -12.5));
-      effects.smokeCloud(new THREE.Vector3(-9, 1, -5));
+      effects.smokeCloud(new THREE.Vector3(-12, 1, -6));
       effects.plantBomb(-16.5, -12.5);
       settle(6); // blink the charge lamp on for the capture
       weapons.showCharge(true);
