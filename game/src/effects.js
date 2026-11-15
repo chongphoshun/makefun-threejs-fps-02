@@ -47,9 +47,9 @@ export function createEffects(scene) {
   scene.add(boomLight);
   let boomLife = 0;
 
-  // Smoke: three pooled clouds, each seven soft grey spheres that swell and drift.
+  // Smoke: three pooled clouds, each ten soft grey spheres that swell and drift.
   const SMOKE_CLOUDS = 3;
-  const SMOKE_PUFFS = 7;
+  const SMOKE_PUFFS = 10;
   const smokeGroups = [];
   const smokeLife = new Float32Array(SMOKE_CLOUDS);
   const smokeSeed = new Float32Array(SMOKE_CLOUDS * SMOKE_PUFFS * 3);
@@ -59,7 +59,7 @@ export function createEffects(scene) {
     for (let i = 0; i < SMOKE_PUFFS; i += 1) {
       const puff = new THREE.Mesh(
         new THREE.SphereGeometry(1.5, 10, 8),
-        new THREE.MeshBasicMaterial({ color: 0x9a9a9a, transparent: true, opacity: 0.32, depthWrite: false }),
+        new THREE.MeshBasicMaterial({ color: 0x9a9a9a, transparent: true, opacity: 0.38, depthWrite: false }),
       );
       group.add(puff);
     }
@@ -78,6 +78,65 @@ export function createEffects(scene) {
   const flashLight = new THREE.PointLight(0xffffff, 0, 26);
   scene.add(flashLight);
   let flashLife = 0;
+
+  // Impact decals: dark scorch blotches pooled on walls where bullets land.
+  const blotchCanvas = document.createElement('canvas');
+  blotchCanvas.width = 64;
+  blotchCanvas.height = 64;
+  const bctx = blotchCanvas.getContext('2d');
+  const bg = bctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  bg.addColorStop(0, 'rgba(18,10,5,0.95)');
+  bg.addColorStop(0.6, 'rgba(30,18,8,0.6)');
+  bg.addColorStop(1, 'rgba(30,18,8,0)');
+  bctx.fillStyle = bg;
+  bctx.fillRect(0, 0, 64, 64);
+  const blotchTex = new THREE.CanvasTexture(blotchCanvas);
+  const DECAL_COUNT = 12;
+  const decals = [];
+  for (let i = 0; i < DECAL_COUNT; i += 1) {
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.3, 0.3),
+      new THREE.MeshBasicMaterial({ map: blotchTex, transparent: true, opacity: 0, depthWrite: false }),
+    );
+    mesh.visible = false;
+    scene.add(mesh);
+    decals.push({ mesh, life: 0 });
+  }
+  let decalNext = 0;
+
+  // Shell casings: small brass boxes the player's gun ejects, bouncing on the floor.
+  const CASING_COUNT = 16;
+  const casings = [];
+  const casingVel = new Float32Array(CASING_COUNT * 3);
+  const casingLife = new Float32Array(CASING_COUNT);
+  const casingSpin = new Float32Array(CASING_COUNT);
+  const casingMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#b08d3e'), roughness: 0.35, metalness: 0.8 });
+  for (let i = 0; i < CASING_COUNT; i += 1) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.05), casingMat);
+    mesh.visible = false;
+    mesh.castShadow = true;
+    scene.add(mesh);
+    casings.push(mesh);
+  }
+  let casingNext = 0;
+
+  // Planted charge: a small device with a blinking red light, visible while the
+  // bomb is live so the site reads as armed.
+  const bombGroup = new THREE.Group();
+  const bombBody = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.12, 0.2),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color('#1e1c1a'), roughness: 0.6, metalness: 0.4 }),
+  );
+  bombBody.position.y = 0.06;
+  const bombLampMat = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
+  const bombLamp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), bombLampMat);
+  bombLamp.position.set(0.08, 0.16, 0);
+  const bombLight = new THREE.PointLight(0xff2a1a, 0, 8);
+  bombLight.position.set(0, 0.3, 0);
+  bombGroup.add(bombBody, bombLamp, bombLight);
+  bombGroup.visible = false;
+  scene.add(bombGroup);
+  let bombTime = 0;
 
   function tracer(from, to, color) {
     const t = tracers[tracerNext];
@@ -151,6 +210,42 @@ export function createEffects(scene) {
     flashLife = 0.25;
   }
 
+  // Scorch decal on the surface a bullet hit, facing out along its normal.
+  function decal(point, normal) {
+    const d = decals[decalNext];
+    decalNext = (decalNext + 1) % DECAL_COUNT;
+    d.mesh.position.copy(point).addScaledVector(normal, 0.02);
+    d.mesh.lookAt(tmp.copy(point).add(normal));
+    d.mesh.material.opacity = 0.85;
+    d.mesh.visible = true;
+    d.life = 8;
+  }
+
+  // Eject one casing from the player's gun: right, up and a little back.
+  function casing(pos, right) {
+    const i = casingNext;
+    casingNext = (casingNext + 1) % CASING_COUNT;
+    const mesh = casings[i];
+    mesh.position.copy(pos);
+    mesh.visible = true;
+    casingVel[i * 3] = right.x * 1.4 + (Math.random() - 0.5) * 0.4;
+    casingVel[i * 3 + 1] = 1.6 + Math.random() * 0.8;
+    casingVel[i * 3 + 2] = right.z * 1.4 - 0.6 + (Math.random() - 0.5) * 0.4;
+    casingSpin[i] = (Math.random() - 0.5) * 20;
+    casingLife[i] = 2.5;
+  }
+
+  function plantBomb(x, z) {
+    bombGroup.position.set(x, 0, z);
+    bombGroup.visible = true;
+    bombTime = 0;
+  }
+
+  function clearBomb() {
+    bombGroup.visible = false;
+    bombLight.intensity = 0;
+  }
+
   let shake = 0;
   const tmp = new THREE.Vector3();
 
@@ -162,10 +257,11 @@ export function createEffects(scene) {
       const age = 14 - Math.max(0, smokeLife[c]);
       const grow = Math.min(1, age / 2) * 0.9 + 0.6;
       const fade = smokeLife[c] < 3 ? smokeLife[c] / 3 : 1;
+      group.rotation.y += dt * 0.05;
       for (let i = 0; i < SMOKE_PUFFS; i += 1) {
         const puff = group.children[i];
         puff.scale.setScalar(grow);
-        puff.material.opacity = 0.32 * fade;
+        puff.material.opacity = 0.38 * fade;
         puff.position.y += dt * 0.15;
       }
       if (smokeLife[c] <= 0) group.visible = false;
@@ -206,10 +302,44 @@ export function createEffects(scene) {
       if (boomLife <= 0) { boomMesh.visible = false; boomLight.intensity = 0; }
     }
     shake = Math.max(0, shake - dt * 1.8);
+    // Decals fade out over their last two seconds.
+    for (const d of decals) {
+      if (!d.mesh.visible) continue;
+      d.life -= dt;
+      if (d.life <= 0) { d.mesh.visible = false; continue; }
+      d.mesh.material.opacity = d.life < 2 ? 0.85 * (d.life / 2) : 0.85;
+    }
+    // Casings arc, bounce once on the floor, then rest and vanish.
+    for (let i = 0; i < CASING_COUNT; i += 1) {
+      if (casingLife[i] <= 0) continue;
+      casingLife[i] -= dt;
+      const mesh = casings[i];
+      if (casingLife[i] <= 0) { mesh.visible = false; continue; }
+      casingVel[i * 3 + 1] -= 9 * dt;
+      mesh.position.x += casingVel[i * 3] * dt;
+      mesh.position.y += casingVel[i * 3 + 1] * dt;
+      mesh.position.z += casingVel[i * 3 + 2] * dt;
+      mesh.rotation.x += casingSpin[i] * dt;
+      mesh.rotation.z += casingSpin[i] * 0.7 * dt;
+      if (mesh.position.y < 0.03) {
+        mesh.position.y = 0.03;
+        casingVel[i * 3 + 1] = Math.abs(casingVel[i * 3 + 1]) * 0.35;
+        casingVel[i * 3] *= 0.6;
+        casingVel[i * 3 + 2] *= 0.6;
+        casingSpin[i] *= 0.5;
+      }
+    }
+    // Planted charge blinks: hard red pulse, twice a second.
+    if (bombGroup.visible) {
+      bombTime += dt;
+      const on = Math.sin(bombTime * 12) > 0;
+      bombLight.intensity = on ? 7 : 0.6;
+      bombLampMat.color.setHex(on ? 0xff2a1a : 0x661008);
+    }
   }
 
   return {
-    tracer, burst, explosion, smokeCloud, flashBurst, step,
+    tracer, burst, explosion, smokeCloud, flashBurst, decal, casing, plantBomb, clearBomb, step,
     addShake(amount) { shake = Math.min(0.7, shake + amount); },
     shakeOffset(out) {
       if (shake <= 0) return out.set(0, 0, 0);

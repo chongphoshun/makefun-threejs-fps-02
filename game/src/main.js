@@ -116,7 +116,12 @@ const hooks = {
   },
   damageCombatant(combatant, amount, isHead, attacker) {
     if (combatant.isPlayer) hurtPlayer(amount, attacker, isHead);
-    else bots.damage(combatant, amount, isHead, attacker);
+    else {
+      bots.damage(combatant, amount, isHead, attacker);
+      // Blood puff at the chest of the bot that was hit.
+      const p = combatant.mover.state.position;
+      effects.burst(new THREE.Vector3(p.x, p.y + 1.1, p.z), new THREE.Vector3(0, 1, 0), 7, 0xd92010);
+    }
   },
   radio(name, text, team) {
     hud.radio(name, text, team);
@@ -181,6 +186,7 @@ function checkElimination() {
 function endRound(winner, reason) {
   const result = game.endRound(winner, reason);
   if (!result) return;
+  effects.clearBomb();
   buyOpen = false;
   hud.hideBuy();
   hud.setPlant(null);
@@ -274,6 +280,7 @@ function shoot(spread) {
         if (wasAlive && !bot.alive) anyKill = true;
       } else {
         effects.burst(hit.point, hit.face ? hit.face.normal : new THREE.Vector3(0, 1, 0), 10);
+        effects.decal(hit.point, hit.face ? hit.face.normal : new THREE.Vector3(0, 1, 0));
       }
     }
   }
@@ -287,6 +294,9 @@ function shoot(spread) {
   }
   weapons.pullTrigger();
   playerMover.recoil(0.009 + random() * 0.004, (random() * 2 - 1) * 0.004);
+  // One brass casing out of the gun, to the right.
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+  effects.casing(muzzleWorld(new THREE.Vector3()), right);
   const slot = weapons.ammo[weapons.state.current];
   hud.setAmmo(slot.mag, slot.reserve, def.name.toUpperCase());
 }
@@ -527,6 +537,7 @@ function step(dt) {
       if (plantProgress >= 3) {
         game.plant(siteHere);
         plantProgress = 0;
+        effects.plantBomb(SITES[siteHere].center.x, SITES[siteHere].center.z);
         hud.setPlant(null);
         hud.banner('CHARGE PLANTED', `Defend ${SITES[siteHere].name} — 40 seconds`, 3000);
         hud.radio('You', `Charge planted at ${siteHere} — hold the site`, 'ember');
