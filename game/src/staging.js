@@ -54,7 +54,7 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       game.state.timer = 52;
       score(4, 3, 8, 5200);
       rifle(5200);
-      player.health = 1000; // staging: keep the player up
+      player.health = 1000;
       playerBody.position.set(8, 0, -10);
       settle(30);
       const enemies = bots.list.filter((b) => b.team === 'ash');
@@ -64,7 +64,7 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       aimAt(new THREE.Vector3(17, 1.5, -13));
       shooter.shoot(0);
       step(FIXED_STEP);
-      effects.smokeCloud(new THREE.Vector3(19, 1, -9)); // right edge, clear of the enemies
+      effects.smokeCloud(new THREE.Vector3(19, 1, -9));
       effects.burst(new THREE.Vector3(13, 1.5, -13), new THREE.Vector3(-1, 0, 0), 12);
       effects.decal(new THREE.Vector3(13, 1.5, -12.5), new THREE.Vector3(-1, 0, 0));
       effects.tracer(new THREE.Vector3(13, 1.35, -13), new THREE.Vector3(8, 1.2, -9), 0x7fb8ff);
@@ -96,10 +96,11 @@ export function createStaging({ scene, camera, renderer, hud, game, rounds, weap
       rifle(3800);
       const enemy = bots.list.find((b) => b.team === 'ash');
       place(enemy, -15.5, -12.5, Math.PI * 0.5);
-      playerBody.position.set(-6, 0, -12);
+      playerBody.position.set(-2.5, 0, -12);
       settle(10);
-      aimAt(new THREE.Vector3(-15.5, 1.3, -12.5));
-      effects.smokeCloud(new THREE.Vector3(-15, 1, -5.5)); // left edge, clear of the charge
+      aimAt(new THREE.Vector3(-15.5, 0.6, -12.5));
+      effects.smokeCloud(new THREE.Vector3(-15, 1, -5.5));
+      effects.plantBomb(-16.5, -12.5);
       weapons.showCharge(true);
       hud.setPlant(2 / 3);
       hud.prompt('Hold <b>E</b> to plant the charge');
