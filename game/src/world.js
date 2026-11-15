@@ -150,16 +150,17 @@ export function createWorld(scene) {
     marker.rotation.x = -Math.PI / 2;
     marker.position.set(site.center.x, 0.03, site.center.z);
     group.add(marker);
-    // Big painted letter on the floor: the site reads at a glance.
+    // Big painted letter on the floor: the site reads at a glance. Offset toward
+    // the site entrance so the containers do not hide it from a player's eye line.
     const decal = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.4, 3.4),
+      new THREE.PlaneGeometry(5, 5),
       new THREE.MeshBasicMaterial({
         map: letterDecal(key, key === 'A' ? PALETTE.accent : PALETTE.zoneB),
         transparent: true, opacity: 0.9, depthWrite: false,
       }),
     );
     decal.rotation.x = -Math.PI / 2;
-    decal.position.set(site.center.x, 0.04, site.center.z);
+    decal.position.set(site.center.x + (key === 'A' ? 2 : -2), 0.04, site.center.z);
     group.add(decal);
   }
 

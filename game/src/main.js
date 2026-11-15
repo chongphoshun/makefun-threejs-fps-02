@@ -46,6 +46,11 @@ scene.background = new THREE.Color(PALETTE.canvas);
 scene.fog = new THREE.Fog(new THREE.Color('#1a120b'), 20, 62);
 const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.05, 160);
 scene.add(camera);
+// Small warm fill light parented to the camera so the dark-metal viewmodel reads
+// with highlights instead of a black silhouette. Visual only.
+const vmLight = new THREE.PointLight(new THREE.Color('#ffe0b8'), 2.5, 2.5);
+vmLight.position.set(0.2, 0.1, -0.4);
+camera.add(vmLight);
 
 const world = createWorld(scene);
 const effects = createEffects(scene);
@@ -699,6 +704,9 @@ function runShot(name) {
     settle(10);
     aimAt(new THREE.Vector3(-0.3, 1.35, 0.5));
     shoot(0);
+    // One sim step so the muzzle flash sprite and the hit flash on the struck
+    // bot actually become visible before the capture freezes the frame.
+    step(FIXED_STEP);
     // Return fire: a blue tracer from the defender back past the camera.
     effects.tracer(new THREE.Vector3(-0.3, 1.35, 0.5), new THREE.Vector3(0.3, 1.2, 5.5), 0x7fb8ff);
     hud.hitMarker(false, 60000);
