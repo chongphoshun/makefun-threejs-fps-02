@@ -531,6 +531,8 @@ function step(dt) {
   bomb.step(dt, keys, phase);
 
   // Per-site colour grade: warm on A, cool on B, warm spawn, neutral in mid.
+  const inA = world.inSite(playerBody.position.x, playerBody.position.z, 'A');
+  const inB = world.inSite(playerBody.position.x, playerBody.position.z, 'B');
   const zone = inA ? 'A' : inB ? 'B' : playerBody.position.z > 12 ? 'spawn' : 'mid';
   hud.setGrade(zone);
 
@@ -540,6 +542,7 @@ function step(dt) {
   hud.setAmmo(slot.mag, slot.reserve, WEAPONS[weapons.state.current].name.toUpperCase());
   hud.setTimer(game.timeLeft());
   hud.setAlive((player.alive ? 1 : 0) + bots.aliveCount('ember'), bots.aliveCount('ash'));
+  const planted = game.state.planted;
   if (planted) {
     hud.setBomb(`CHARGE AT ${SITES[planted.site].name} — ${Math.ceil(planted.timeLeft)}s`, planted.timeLeft / 40);
   } else hud.setBomb(null);
