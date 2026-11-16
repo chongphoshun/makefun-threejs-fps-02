@@ -1,7 +1,11 @@
 # EMBERLINE — Cinder Yard: 5v5 plant/defuse tactical FPS — 24 rounds, 5 guns, 3 grenades
 
+[![make.fun · threejs-fps-02](https://make.fun/badge/threejs-fps-02.svg)](https://make.fun/bounty/threejs-fps-02?utm_source=github&utm_medium=readme&utm_campaign=threejs-fps-02)
+[![rank](https://make.fun/badge/threejs-fps-02/chongphoshun/makefun-threejs-fps-02/rank.svg)](https://make.fun/bounty/threejs-fps-02/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=threejs-fps-02)
+[![reward](https://make.fun/badge/threejs-fps-02/chongphoshun/makefun-threejs-fps-02/reward.svg)](https://make.fun/bounty/threejs-fps-02?utm_source=github&utm_medium=readme&utm_campaign=threejs-fps-02)
+
 A complete, original, round-based tactical FPS in three.js 0.187.0, built for the
-make.fun "best three.js tactical FPS" bounty. Two teams of five fight over Cinder Yard,
+make.fun "best three.js tactical FPS" bounty ([make.fun/bounty/threejs-fps-02](https://make.fun/bounty/threejs-fps-02)). Two teams of five fight over Cinder Yard,
 an industrial brickworks at sunset with two bomb sites (Kiln Hall / Clay Pits): plant
 the charge or drop every defender. Money earned each round buys weapons, grenades,
 armour, a helmet and a defuse kit in the freeze-time ARMOURY. Bots walk waypoint
